@@ -1,0 +1,2224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PYM · Control de Viajes</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{
+  --bg:#f4f5f8;--surf:#ffffff;--card:#ffffff;--card2:#f7f8fb;
+  --border:#e2e5ec;--border2:#cdd2df;
+  --y:#c99400;--o:#e07b00;--g:#1a9e4a;--r:#d92d3d;--b:#2f6fe0;--pu:#7c4feb;
+  --text:#1b1f2a;--sub:#5b6377;--dim:#8891a3;
+  --rad:12px;--rad-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;font-size:16px;}
+
+/* ══ HEADER ══ */
+header{background:var(--surf);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:300;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-box{width:34px;height:34px;background:var(--y);border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:19px;color:#000;letter-spacing:1px;flex-shrink:0;}
+.logo-name{font-family:'Bebas Neue';font-size:21px;letter-spacing:2.5px;color:var(--y);}
+.logo-sub{font-size:10px;color:var(--sub);letter-spacing:1.5px;text-transform:uppercase;}
+.hright{display:flex;align-items:center;gap:16px;}
+.clock-wrap{text-align:right;}
+.clock{font-family:'Bebas Neue';font-size:27px;color:var(--y);letter-spacing:3px;line-height:1;}
+.cdate{font-size:11px;color:var(--sub);}
+
+/* ══ NAV ══ */
+.nav{background:var(--surf);border-bottom:1px solid var(--border);display:flex;padding:0 20px;overflow-x:auto;scrollbar-width:none;}
+.nav::-webkit-scrollbar{display:none;}
+.nav-btn{background:none;border:none;cursor:pointer;color:var(--sub);font-family:'DM Sans';font-size:15px;font-weight:500;padding:10px 16px;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s;letter-spacing:.3px;}
+.nav-btn:hover{color:var(--text);}
+.nav-btn.on{color:var(--y);border-bottom-color:var(--y);}
+
+/* ══ MAIN ══ */
+main{padding:18px;max-width:1360px;margin:0 auto;}
+.panel{display:none;} .panel.on{display:block;}
+
+/* ══ STATS ══ */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:18px;}
+.scard{background:var(--card);border:1px solid var(--border);border-radius:var(--rad);padding:14px 12px;text-align:center;transition:all .2s;box-shadow:0 1px 3px rgba(20,25,40,.05);}
+.scard:hover{border-color:var(--border2);box-shadow:0 3px 10px rgba(20,25,40,.08);}
+.snum{font-family:'Bebas Neue';font-size:34px;line-height:1;margin-bottom:2px;}
+.slbl{font-size:10px;color:var(--sub);letter-spacing:1.2px;text-transform:uppercase;}
+.sy .snum{color:var(--y);} .sg .snum{color:var(--g);} .sr .snum{color:var(--r);} .sb .snum{color:var(--b);} .spu .snum{color:var(--pu);}
+
+/* ══ CARD ══ */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--rad);padding:20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(20,25,40,.05);}
+.ctitle{font-family:'Bebas Neue';font-size:19px;letter-spacing:2px;color:var(--y);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.ctitle small{font-family:'DM Sans';font-size:12px;color:var(--sub);letter-spacing:0;font-weight:400;margin-left:4px;}
+
+/* ══ UPLOAD ══ */
+.upzone{border:2px dashed var(--border2);border-radius:var(--rad);padding:24px;text-align:center;cursor:pointer;transition:all .25s;position:relative;margin-bottom:14px;}
+.upzone:hover,.upzone.drag{border-color:var(--y);background:rgba(245,193,0,.03);}
+.upzone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.up-icon{font-size:34px;margin-bottom:6px;}
+.up-t{color:var(--sub);font-size:15px;} .up-t b{color:var(--y);}
+/* OCR */
+.obar{background:var(--border);border-radius:4px;height:4px;overflow:hidden;display:none;margin-bottom:10px;}
+.obar.on{display:block;}
+.ofill{height:100%;background:linear-gradient(90deg,var(--y),var(--o));width:0%;transition:width .35s;}
+.ostatus{font-size:14px;color:var(--y);margin-bottom:8px;display:none;}
+.ostatus.on{display:block;}
+.iprev{max-height:130px;border-radius:8px;border:1px solid var(--border);object-fit:contain;display:none;margin-bottom:12px;}
+.iprev.on{display:block;}
+
+/* ══ FORM ══ */
+.fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:11px;}
+.fgroup{display:flex;flex-direction:column;gap:4px;}
+.fgroup.full{grid-column:1/-1;}
+.fgroup.half{grid-column:span 2;}
+label{font-size:11px;color:var(--sub);letter-spacing:1px;text-transform:uppercase;font-weight:600;}
+input,select,textarea{background:var(--surf);border:1px solid var(--border);border-radius:var(--rad-sm);padding:8px 11px;color:var(--text);font-family:'DM Sans';font-size:15px;outline:none;transition:border-color .2s;width:100%;}
+input:focus,select:focus,textarea:focus{border-color:var(--y);}
+input.af{border-color:var(--g)!important;background:rgba(29,185,84,.06)!important;}
+select option{background:var(--card);}
+textarea{resize:vertical;min-height:50px;}
+
+/* ══ SECTION DIVIDER ══ */
+.sdiv{display:flex;align-items:center;gap:10px;margin:18px 0 12px;font-family:'Bebas Neue';font-size:14px;letter-spacing:2px;color:var(--dim);user-select:none;}
+.sdiv::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ══ CLIENTES TABLE ══ */
+.ctable-wrap{border:1px solid var(--border);border-radius:var(--rad-sm);overflow:hidden;margin-bottom:10px;}
+.cth{background:var(--surf);display:grid;grid-template-columns:1.6fr .7fr .55fr .65fr .6fr 1.1fr .75fr .75fr .95fr 32px;padding:7px 0;border-bottom:1px solid var(--border);}
+.cth span{font-size:10px;color:var(--sub);letter-spacing:1px;text-transform:uppercase;font-weight:700;padding:0 7px;}
+.crow{display:grid;grid-template-columns:1.6fr .7fr .55fr .65fr .6fr 1.1fr .75fr .75fr .95fr 32px;border-top:1px solid var(--border);align-items:stretch;}
+.crow input,.crow select{border:none;border-radius:0;border-right:1px solid var(--border);background:transparent;font-size:14px;padding:7px 7px;height:100%;min-width:0;}
+.crow input:last-of-type{border-right:none;}
+.crow input:focus,.crow select:focus{background:rgba(245,193,0,.04);border-color:var(--border);}
+.btn-x{background:none;border:none;color:var(--dim);cursor:pointer;font-size:17px;padding:0;width:32px;display:flex;align-items:center;justify-content:center;transition:color .2s;flex-shrink:0;}
+.btn-x:hover{color:var(--r);}
+.btn-add{background:rgba(245,193,0,.07);border:1px dashed rgba(245,193,0,.3);border-radius:var(--rad-sm);color:var(--y);font-size:14px;padding:8px;width:100%;cursor:pointer;font-family:'DM Sans';transition:all .2s;}
+.btn-add:hover{background:rgba(245,193,0,.14);}
+
+/* ══ TEMP REVISIONES ══ */
+.rev-list{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;}
+.rev-item{background:var(--surf);border:1px solid var(--border);border-radius:var(--rad-sm);display:flex;flex-wrap:wrap;gap:10px;padding:10px 12px;align-items:center;}
+.rev-item input{flex:1;min-width:80px;}
+.rev-tval{font-family:'Bebas Neue';font-size:27px;color:var(--y);min-width:60px;text-align:center;}
+.tv-cold{color:var(--b);} .tv-ok{color:var(--g);} .tv-hot{color:var(--r);}
+
+/* ══ BUTTONS ══ */
+.btn-p{background:var(--y);color:#000;border:none;border-radius:var(--rad-sm);padding:10px 24px;font-family:'Bebas Neue';font-size:17px;letter-spacing:2px;cursor:pointer;transition:background .2s;}
+.btn-p:hover{background:var(--o);color:#fff;}
+.btn-s{background:transparent;color:var(--sub);border:1px solid var(--border);border-radius:var(--rad-sm);padding:10px 16px;font-size:15px;cursor:pointer;transition:all .2s;}
+.btn-s:hover{border-color:var(--y);color:var(--y);}
+.btn-sm{padding:6px 13px;font-size:14px;}
+.btn-g{background:rgba(29,185,84,.12);color:var(--g);border:1px solid rgba(29,185,84,.3);border-radius:var(--rad-sm);padding:7px 14px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;}
+.btn-g:hover{background:rgba(29,185,84,.22);}
+.btn-r{background:rgba(230,57,70,.1);color:var(--r);border:1px solid rgba(230,57,70,.25);border-radius:var(--rad-sm);padding:7px 14px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;}
+.btn-r:hover{background:rgba(230,57,70,.2);}
+.btn-b{background:rgba(58,134,255,.1);color:var(--b);border:1px solid rgba(58,134,255,.25);border-radius:var(--rad-sm);padding:7px 14px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;}
+.btn-b:hover{background:rgba(58,134,255,.2);}
+
+/* ══ BADGE ══ */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.4px;white-space:nowrap;}
+.bg-ok{background:rgba(29,185,84,.14);color:var(--g);border:1px solid rgba(29,185,84,.28);}
+.bg-an{background:rgba(230,57,70,.14);color:var(--r);border:1px solid rgba(230,57,70,.28);}
+.bg-y{background:rgba(245,193,0,.14);color:var(--y);border:1px solid rgba(245,193,0,.28);}
+.bg-b{background:rgba(58,134,255,.14);color:var(--b);border:1px solid rgba(58,134,255,.28);}
+.bg-pu{background:rgba(139,92,246,.14);color:var(--pu);border:1px solid rgba(139,92,246,.28);}
+.bg-dim{background:rgba(85,95,117,.18);color:var(--sub);border:1px solid var(--border);}
+
+/* ══ NEXT BAR ══ */
+.nbar{background:linear-gradient(90deg,rgba(245,193,0,.09),rgba(224,123,0,.05));border:1px solid rgba(245,193,0,.18);border-radius:var(--rad);padding:11px 18px;display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.pulse{width:9px;height:9px;border-radius:50%;background:var(--y);animation:pulse 2s infinite;flex-shrink:0;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(245,193,0,.5);}50%{box-shadow:0 0 0 7px rgba(245,193,0,0);}}
+.nbar select{background:transparent;border:1px solid rgba(245,193,0,.3);color:var(--y);border-radius:5px;padding:2px 7px;font-size:12px;}
+
+/* ══ FILTERS ══ */
+.frow{background:var(--card);border:1px solid var(--border);border-radius:var(--rad);padding:14px 16px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
+.fg2{display:flex;flex-direction:column;gap:3px;min-width:120px;}
+.fg2 label{font-size:10px;}
+.fg2 input,.fg2 select{font-size:14px;padding:6px 9px;}
+.btn-fil{background:var(--y);color:#000;border:none;border-radius:6px;padding:7px 15px;font-family:'Bebas Neue';font-size:15px;letter-spacing:1px;cursor:pointer;height:32px;align-self:flex-end;}
+.btn-clr{background:transparent;color:var(--sub);border:1px solid var(--border);border-radius:6px;padding:7px 12px;font-size:14px;cursor:pointer;height:32px;align-self:flex-end;transition:all .2s;}
+.btn-clr:hover{border-color:var(--r);color:var(--r);}
+
+/* ══ VIAJE CARD (historial) ══ */
+.vcard{background:var(--card);border:1px solid var(--border);border-radius:var(--rad);margin-bottom:14px;overflow:hidden;transition:all .2s;box-shadow:0 1px 3px rgba(20,25,40,.05);}
+.vcard:hover{border-color:rgba(201,148,0,.3);box-shadow:0 3px 10px rgba(20,25,40,.08);}
+.vhead{padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;}
+.vplaca{font-family:'Bebas Neue';font-size:25px;color:var(--y);letter-spacing:2px;min-width:76px;flex-shrink:0;}
+.vinfo{flex:1;min-width:0;}
+.vruta{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.vmeta{font-size:12px;color:var(--sub);margin-top:2px;}
+.vbadges{display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;}
+.vtog{color:var(--dim);font-size:18px;flex-shrink:0;transition:transform .2s;}
+.vtog.open{transform:rotate(180deg);}
+.vbody{display:none;border-top:1px solid var(--border);}
+.vbody.on{display:block;}
+
+/* ══ VIEW TABLE (clientes en historial) ══ */
+.vtw{overflow-x:auto;}
+.vtable{width:100%;border-collapse:collapse;font-size:14px;}
+.vtable th{background:var(--surf);padding:8px 11px;text-align:left;font-size:10px;color:var(--sub);letter-spacing:1px;text-transform:uppercase;font-weight:700;white-space:nowrap;}
+.vtable td{padding:8px 11px;border-top:1px solid var(--border);vertical-align:middle;}
+.vtable tr:hover td{background:rgba(245,193,0,.025);}
+.dbadge{background:rgba(58,134,255,.1);color:var(--b);border:1px solid rgba(58,134,255,.22);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;letter-spacing:.5px;white-space:nowrap;}
+.entregado td{opacity:.6;}
+.entregado .cli-name{text-decoration:line-through;}
+
+/* ══ VIAJE FOOTER ══ */
+.vfoot{padding:11px 16px;background:var(--surf);border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:14px;align-items:center;}
+.vfst{font-size:14px;color:var(--sub);} .vfst strong{color:var(--text);}
+.vfactions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;}
+
+/* ══ TIMELINE ══ */
+.tl-wrap{padding:16px 18px;border-top:1px solid var(--border);}
+.tl-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+.tl-title{font-family:'Bebas Neue';font-size:16px;letter-spacing:2px;color:var(--sub);}
+.tl-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* Timeline line */
+.timeline{position:relative;padding-left:34px;}
+.timeline::before{content:'';position:absolute;left:13px;top:4px;bottom:4px;width:3px;border-radius:3px;background:linear-gradient(180deg, var(--y), rgba(245,193,0,.15) 60%, var(--border) 100%);}
+.tl-event{position:relative;margin-bottom:16px;}
+.tl-event:last-child{margin-bottom:0;}
+.tl-dot{position:absolute;left:-34px;top:8px;width:26px;height:26px;border-radius:50%;border:3px solid var(--bg);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,.35);z-index:1;}
+.dot-salida{background:var(--g);}
+.dot-temp{background:var(--y);}
+.dot-descargue{background:var(--b);box-shadow:0 0 0 5px rgba(58,134,255,.2), 0 2px 6px rgba(0,0,0,.35);}
+.dot-novedad{background:var(--r);}
+.dot-ubicacion{background:var(--pu);}
+.dot-llegada{background:var(--g);box-shadow:0 0 0 5px rgba(29,185,84,.25), 0 2px 6px rgba(0,0,0,.35);}
+.dot-nota{background:var(--sub);}
+
+.tl-bubble{background:var(--card2);border:1px solid var(--border);border-radius:var(--rad-sm);padding:13px 16px;transition:all .2s;}
+.tl-bubble:hover{border-color:var(--border2);transform:translateX(2px);}
+.tl-bubble.tl-descargue{background:linear-gradient(135deg, rgba(58,134,255,.08), var(--card2) 60%);border-color:rgba(58,134,255,.3);}
+.tl-bhead{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;}
+.tl-btype{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--sub);}
+.tl-btime{font-size:11px;color:var(--dim);white-space:nowrap;flex-shrink:0;}
+.tl-btext{font-size:15px;color:var(--text);line-height:1.45;}
+.tl-bmeta{font-size:12px;color:var(--sub);margin-top:6px;display:flex;gap:10px;flex-wrap:wrap;}
+.tl-bloc{font-size:12px;color:var(--b);margin-top:4px;display:flex;align-items:center;gap:4px;}
+.tl-bloc a{color:var(--b);text-decoration:none;}
+.tl-bloc a:hover{text-decoration:underline;}
+
+/* ══ ADD EVENT FORM ══ */
+.add-event-form{background:var(--surf);border:1px solid var(--border2);border-radius:var(--rad-sm);padding:14px;margin-top:14px;}
+.aef-title{font-size:14px;font-weight:700;color:var(--y);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;}
+.aef-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;}
+.tipo-select{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px;}
+.tipo-btn{background:var(--card);border:1px solid var(--border);border-radius:20px;color:var(--sub);font-size:12px;font-weight:600;padding:5px 12px;cursor:pointer;transition:all .2s;letter-spacing:.5px;}
+.tipo-btn:hover{border-color:var(--border2);color:var(--text);}
+.tipo-btn.sel{color:#000;border-color:transparent;}
+.tb-salida.sel{background:var(--g);}
+.tb-temp.sel{background:var(--y);}
+.tb-descargue.sel{background:var(--b);}
+.tb-novedad.sel{background:var(--r);}
+.tb-ubicacion.sel{background:var(--pu);}
+.tb-llegada.sel{background:var(--g);}
+.tb-nota.sel{background:var(--sub);}
+.gps-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;}
+.gps-row input{flex:1;min-width:120px;}
+
+/* ══ ESTADO VIAJE PILL ══ */
+.vest{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.5px;}
+.vest-active{background:rgba(29,185,84,.14);color:var(--g);border:1px solid rgba(29,185,84,.28);}
+.vest-fin{background:rgba(85,95,117,.2);color:var(--sub);border:1px solid var(--border);}
+.vest-an{background:rgba(230,57,70,.14);color:var(--r);border:1px solid rgba(230,57,70,.28);}
+
+/* ══ ANALYTICS ══ */
+.ag{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;}
+.ac{background:var(--card);border:1px solid var(--border);border-radius:var(--rad);padding:18px;box-shadow:0 1px 3px rgba(20,25,40,.05);}
+.ac h3{font-family:'Bebas Neue';font-size:15px;letter-spacing:2px;color:var(--sub);margin-bottom:14px;}
+.barchart{display:flex;flex-direction:column;gap:9px;}
+.brow{display:flex;align-items:center;gap:8px;}
+.blbl{font-size:12px;min-width:72px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.blbl-wide{min-width:170px;max-width:260px;white-space:normal;line-height:1.25;font-size:14px;}
+.ac-wide{grid-column:1/-1;}
+.ac-wide .brow{gap:14px;margin-bottom:4px;}
+.ac-wide .btrack{height:10px;}
+.btrack{flex:1;height:7px;background:var(--border);border-radius:4px;overflow:hidden;}
+.bfill{height:100%;border-radius:4px;transition:width .6s;}
+.bval{font-size:12px;color:var(--text);min-width:28px;text-align:right;}
+
+/* ══ EMPTY ══ */
+.empty{text-align:center;padding:50px 20px;color:var(--sub);}
+.empty .ei{font-size:47px;margin-bottom:10px;}
+
+/* ══ TOAST ══ */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--card2);border:1px solid var(--g);color:var(--text);padding:11px 17px;border-radius:var(--rad-sm);font-size:15px;transform:translateY(100px);opacity:0;transition:all .3s;z-index:9999;max-width:320px;}
+.toast.on{transform:translateY(0);opacity:1;}
+.toast.err{border-color:var(--r);}
+
+/* ══ SEGUIMIENTO panel ══ */
+.seg-card{background:var(--card);border:1px solid var(--border);border-radius:var(--rad);margin-bottom:14px;overflow:hidden;box-shadow:0 1px 3px rgba(20,25,40,.05);transition:all .2s;}
+.seg-card:hover{border-color:rgba(201,148,0,.3);box-shadow:0 3px 10px rgba(20,25,40,.08);}
+.seg-head{padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;}
+.seg-tog{color:var(--dim);font-size:18px;flex-shrink:0;transition:transform .2s;}
+.seg-tog.open{transform:rotate(180deg);}
+.seg-mini-prog{width:60px;background:var(--border);border-radius:4px;height:6px;overflow:hidden;flex-shrink:0;}
+.seg-mini-prog>div{height:100%;border-radius:4px;}
+.seg-placa{font-family:'Bebas Neue';font-size:25px;color:var(--y);letter-spacing:2px;min-width:76px;}
+.seg-info{flex:1;}
+.seg-ruta{font-size:15px;font-weight:600;}
+.seg-meta{font-size:12px;color:var(--sub);margin-top:2px;}
+.seg-body{border-top:1px solid var(--border);padding:16px 18px;display:none;}
+.seg-body.on{display:block;}
+
+/* ══ RESPONSIVE ══ */
+@media(max-width:720px){
+  main{padding:10px;}
+  .cth,.crow{grid-template-columns:1.4fr .6fr .55fr 1fr 32px;}
+  .cth span:nth-child(4),.cth span:nth-child(5),.cth span:nth-child(7),.cth span:nth-child(8),.cth span:nth-child(9),
+  .crow input:nth-child(4),.crow input:nth-child(5),.crow input:nth-child(7),.crow input:nth-child(8),.crow input:nth-child(9){display:none;}
+  .vbadges{display:none;}
+  .seg-mini-prog{display:none;}
+  .vfoot{gap:8px;}
+  .aef-grid{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:480px){
+  .fg{grid-template-columns:1fr 1fr;}
+  .hright .clock{font-size:20px;}
+}
+
+/* scrollbar */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--surf);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+/* ══ PORTAL CLIENTE ══ */
+.portal-hero{background:linear-gradient(135deg,var(--y),var(--o));border-radius:var(--rad);padding:40px 24px;text-align:center;color:#000;margin-bottom:24px;}
+.portal-hero h1{font-family:'Bebas Neue';font-size:36px;letter-spacing:3px;margin-bottom:8px;}
+.portal-card{background:var(--card);border:1px solid var(--border);border-radius:var(--rad);padding:20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(20,25,40,.05);}
+.portal-img{width:100%;max-height:400px;object-fit:contain;border-radius:8px;margin-top:14px;border:1px solid var(--border);cursor:pointer;}
+
+/* ══ MODAL ══ */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;}
+.modal.on{display:flex;}
+.modal-content{background:var(--card);border-radius:var(--rad);padding:24px;max-width:500px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,.2);}
+.modal-title{font-family:'Bebas Neue';font-size:20px;letter-spacing:2px;color:var(--y);margin-bottom:16px;}
+.modal-link{background:var(--card2);border:1px solid var(--border);border-radius:var(--rad-sm);padding:12px 14px;font-size:14px;word-break:break-all;margin-bottom:10px;font-family:monospace;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-box">PYM</div>
+    <div>
+      <div class="logo-name">FlotaControl</div>
+      <div class="logo-sub">Control de Viajes & Temperatura</div>
+    </div>
+  </div>
+  <div class="hright">
+    <div class="clock-wrap">
+      <div class="clock" id="clock">00:00:00</div>
+      <div class="cdate" id="cdate"></div>
+    </div>
+  </div>
+</header>
+
+<div class="nav">
+  <button class="nav-btn on" onclick="go('registro',this)">📋 Nuevo Viaje</button>
+  <button class="nav-btn" onclick="go('seguimiento',this)">🗺 Seguimiento</button>
+  <button class="nav-btn" onclick="go('historial',this)">📂 Historial</button>
+  <button class="nav-btn" onclick="go('analytics',this)">📊 Resumen</button>
+  <button class="nav-btn" onclick="go('clientes',this)">👥 Portal Clientes</button>
+</div>
+
+<main>
+
+<!-- ════════════ REGISTRO ════════════ -->
+<div class="panel on" id="pnl-registro">
+
+  <div class="nbar">
+    <div class="pulse"></div>
+    <span style="font-size:15px;">Próxima revisión de temperatura: <strong id="nxt" style="color:var(--y)">–</strong></span>
+    <select id="intsel" onchange="setIntv()" style="margin-left:4px;">
+      <option value="2">Cada 2h</option><option value="3">Cada 3h</option><option value="1">Cada 1h</option>
+    </select>
+  </div>
+
+  <div class="stats" id="stats-reg"></div>
+
+  <div class="card">
+    <div class="ctitle">📷 Cargar Planilla <small>— la IA leerá los datos automáticamente</small></div>
+
+    <div class="upzone" id="uz">
+      <input type="file" id="fi" accept="image/*">
+      <div class="up-icon">🖼️</div>
+      <div class="up-t">Arrastra la planilla aquí o <b>haz clic para seleccionar</b></div>
+      <div class="up-t" style="font-size:12px;margin-top:3px;">Extrae: placa · conductor · clientes · destinos · cajas · kilos · nota especial</div>
+    </div>
+    <div class="ostatus" id="ost"></div>
+    <div class="obar" id="ob"><div class="ofill" id="of"></div></div>
+    <img class="iprev" id="ipv" alt="planilla">
+
+    <div class="sdiv">DATOS DEL VIAJE</div>
+    <div class="fg">
+      <div class="fgroup"><label>Fecha</label><input type="date" id="v-fecha"></div>
+      <div class="fgroup"><label>N° Manifiesto</label><input type="text" id="v-manif" placeholder="MT-000123"></div>
+      <div class="fgroup"><label>Origen</label><input type="text" id="v-origen" placeholder="BOGOTÁ"></div>
+      <div class="fgroup"><label>Destino</label><input type="text" id="v-destino" placeholder="MEDELLÍN"></div>
+      <div class="fgroup"><label>Placa</label><input type="text" id="v-placa" placeholder="TFU590" style="text-transform:uppercase"></div>
+      <div class="fgroup"><label>Vehículo</label><input type="text" id="v-veh" placeholder="CHEVROLET NHR"></div>
+      <div class="fgroup"><label>Conductor</label><input type="text" id="v-cond" placeholder="Nombre completo"></div>
+      <div class="fgroup"><label>Cédula</label><input type="text" id="v-ced" placeholder="79.806.519"></div>
+      <div class="fgroup"><label>Celular</label><input type="text" id="v-cel" placeholder="3143727944"></div>
+      <div class="fgroup"><label>Flete ($)</label><input type="number" id="v-flete" placeholder="0"></div>
+      <div class="fgroup"><label>Anticipo ($)</label><input type="number" id="v-ant" placeholder="800000"></div>
+      <div class="fgroup"><label>Canastillas</label><input type="number" id="v-can" placeholder="17"></div>
+    </div>
+
+    <div class="sdiv">CLIENTES Y ENTREGAS <small style="font-family:'DM Sans';font-size:11px;color:var(--dim);letter-spacing:0;"> — tipo paqueteo, múltiples por viaje</small></div>
+    <div class="ctable-wrap">
+      <div class="cth">
+        <span>Cliente</span><span>Factura</span><span>Cajas</span><span>Kilos</span>
+        <span>Val/Kg</span><span>Lugar de entrega</span><span>Val. envío</span><span>Fac. P&M</span><span>Retorno/Obs</span><span></span>
+      </div>
+      <div id="cb-rows"></div>
+    </div>
+    <button class="btn-add" onclick="addCRow()">+ Agregar cliente</button>
+
+    <div class="sdiv">NOTA / INSTRUCCIÓN ESPECIAL</div>
+    <div class="fg">
+      <div class="fgroup full"><label>Nota</label><textarea id="v-nota" placeholder="OJO: instrucciones especiales del viaje..."></textarea></div>
+    </div>
+
+    <div class="sdiv">REVISIONES DE TEMPERATURA</div>
+    <div class="fg" style="margin-bottom:12px;">
+      <div class="fgroup"><label>Temp. Mínima objetivo (°C)</label><input type="number" step="0.1" id="v-tmin" value="-20" onchange="recalcAllRevs()"></div>
+      <div class="fgroup"><label>Temp. Máxima objetivo (°C)</label><input type="number" step="0.1" id="v-tmax" value="-15" onchange="recalcAllRevs()"></div>
+      <div class="fgroup full" style="justify-content:center;"><label>&nbsp;</label><span style="font-size:12px;color:var(--sub);">Este es el rango en el que debe viajar la mercancía. Solo se marca <strong style="color:var(--r)">ANOMALÍA</strong> cuando una lectura sale de este rango.</span></div>
+    </div>
+    <div id="rev-list" class="rev-list"></div>
+    <button class="btn-add" onclick="addRev()" style="margin-bottom:10px;">+ Agregar revisión de temperatura</button>
+
+    <div class="sdiv">FORMA DE PAGO</div>
+    <div class="fg">
+      <div class="fgroup"><label>Efectivo ($)</label><input type="number" id="v-ef" placeholder="0"></div>
+      <div class="fgroup"><label>Contado ($)</label><input type="number" id="v-ct" placeholder="0"></div>
+      <div class="fgroup"><label>Crédito ($)</label><input type="number" id="v-cr" placeholder="0"></div>
+    </div>
+
+    <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn-p" id="btn-guardar" onclick="guardar()">💾 GUARDAR VIAJE</button>
+      <button class="btn-s" onclick="limpiar()">✕ Limpiar</button>
+      <button class="btn-s" id="btn-cancel-edit" style="display:none;background:rgba(217,45,61,.08);border-color:var(--r);color:var(--r);" onclick="cancelarEdicion()">✕ Cancelar edición</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ SEGUIMIENTO ════════════ -->
+<div class="panel" id="pnl-seguimiento">
+  <div class="stats" id="stats-seg"></div>
+  <div id="seg-list"></div>
+  <div class="empty" id="seg-empty" style="display:none;">
+    <div class="ei">🗺️</div>
+    <p>No hay viajes activos en este momento.<br>Registra un nuevo viaje para comenzar el seguimiento.</p>
+  </div>
+</div>
+
+<!-- ════════════ HISTORIAL ════════════ -->
+<div class="panel" id="pnl-historial">
+  <div class="frow">
+    <div class="fg2"><label>Desde</label><input type="date" id="fd"></div>
+    <div class="fg2"><label>Hasta</label><input type="date" id="fh"></div>
+    <div class="fg2"><label>Placa</label><input type="text" id="fp" placeholder="TFU590"></div>
+    <div class="fg2"><label>Conductor</label><input type="text" id="fc" placeholder="Nombre..."></div>
+    <div class="fg2"><label>Cliente</label><input type="text" id="fcl" placeholder="Buscar..."></div>
+    <div class="fg2"><label>Destino</label><input type="text" id="fde" placeholder="Ciudad..."></div>
+    <div class="fg2"><label>Estado</label>
+      <select id="fes"><option value="">Todos</option><option value="activo">En ruta</option><option value="finalizado">Finalizado</option></select>
+    </div>
+    <button class="btn-fil" onclick="filtrar()">FILTRAR</button>
+    <button class="btn-clr" onclick="clearFilt()">Limpiar</button>
+    <button class="btn-s btn-sm" style="margin-left:auto;align-self:flex-end;" onclick="exportCSV()">⬇ CSV</button>
+  </div>
+  <div id="hcnt" style="font-size:14px;color:var(--sub);margin-bottom:10px;"></div>
+  <div id="hist-list"></div>
+  <div class="empty" id="hist-empty" style="display:none;"><div class="ei">📂</div><p>Sin viajes para los filtros aplicados.</p></div>
+</div>
+
+<!-- ════════════ ANALYTICS ════════════ -->
+<div class="panel" id="pnl-analytics">
+  <div class="ag">
+    <div class="ac"><h3>Viajes por placa</h3><div class="barchart" id="ch-pl"></div></div>
+    <div class="ac ac-wide"><h3>Kilos por destino (top 6)</h3><div class="barchart" id="ch-de"></div></div>
+    <div class="ac"><h3>Viajes últimos 7 días</h3><div class="barchart" id="ch-di"></div></div>
+    <div class="ac"><h3>Top clientes</h3><div class="barchart" id="ch-cl"></div></div>
+    <div class="ac"><h3>Anomalías por placa</h3><div class="barchart" id="ch-an"></div></div>
+    <div class="ac"><h3>Temp. promedio por placa</h3><div class="barchart" id="ch-te"></div></div>
+  </div>
+</div>
+
+</main>
+<div class="toast" id="toast"></div>
+<datalist id="dl-responsables"></datalist>
+
+<!-- ════════════ PORTAL CLIENTES ════════════ -->
+<div class="panel" id="pnl-clientes">
+  <div class="card">
+    <div class="ctitle">👥 Portal Clientes <small>— genera un enlace de seguimiento por cliente</small></div>
+    <div id="clientes-container"></div>
+  </div>
+</div>
+
+<!-- MODAL COMPARTIR ENLACE -->
+<div id="modal-compartir" class="modal">
+  <div class="modal-content">
+    <div class="modal-title">🔗 Enlace de Seguimiento</div>
+    <div class="modal-link" id="modal-link-text"></div>
+    <button class="btn-p" style="width:100%;margin-bottom:10px;" onclick="copiarEnlace()">📋 Copiar Enlace</button>
+    <button class="btn-s" style="width:100%;" onclick="document.getElementById('modal-compartir').classList.remove('on')">Cerrar</button>
+  </div>
+</div>
+
+
+
+<script>
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+let records = [];
+let filtered = [];
+let histFiltroAplicado = false; // Historial arranca vacío; solo se llena cuando el usuario filtra explícitamente
+let nxtTimer = null;
+let intervalH = 2;
+let rowId = 0, revId = 0;
+let segOpen = new Set();
+let editingId = null;
+// Active event form state
+let activeEventViajeId = null;
+let tipoSel = 'nota';
+
+// ══════════════════════════════════════
+// STORAGE — Firebase Realtime Database
+// (con localStorage como caché/respaldo offline)
+// ══════════════════════════════════════
+const STORAGE_KEY = 'pym-v3';
+const FB_PATH = 'pym_control_viajes/registros';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDmQUzJsv4hKLzyD1ty8xQlIFOnUf6hEqU",
+  authDomain: "flotapym2026-3b019.firebaseapp.com",
+  databaseURL: "https://flotapym2026-3b019-default-rtdb.firebaseio.com",
+  projectId: "flotapym2026-3b019",
+  storageBucket: "flotapym2026-3b019.firebasestorage.app",
+  messagingSenderId: "899317997124",
+  appId: "1:899317997124:web:f09a500720dd77c91f6611"
+};
+let fbDB = null;
+let fbReady = false;
+
+// Cloudinary — misma cuenta que usa PYM FlotaControl, pero en una carpeta
+// separada para no mezclar las fotos de facturas/entregas de este módulo
+// con las de ese otro proyecto.
+const CLOUDINARY_CLOUD = 'dezkx9xmc';
+const CLOUDINARY_PRESET = 'pym_unsigned';
+const CLOUDINARY_FOLDER = 'pym_control_viajes/facturas';
+
+function loadScriptTag(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => resolve(true);
+    s.onerror = () => reject(new Error('No cargó: ' + src));
+    document.head.appendChild(s);
+  });
+}
+
+// Varias CDNs de respaldo por si alguna está bloqueada en el entorno donde se abra el archivo
+const FB_CDN_SOURCES = [
+  ['https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-app-compat.min.js',
+   'https://cdnjs.cloudflare.com/ajax/libs/firebase/10.7.1/firebase-database-compat.min.js'],
+  ['https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-app-compat.js',
+   'https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-database-compat.js'],
+  ['https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js',
+   'https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js']
+];
+
+async function initFirebase() {
+  for (const [appUrl, dbUrl] of FB_CDN_SOURCES) {
+    try {
+      await loadScriptTag(appUrl);
+      await loadScriptTag(dbUrl);
+      if (typeof firebase !== 'undefined') {
+        firebase.initializeApp(firebaseConfig);
+        fbDB = firebase.database();
+        fbReady = true;
+        console.log('Firebase SDK cargado desde:', appUrl);
+        return true;
+      }
+    } catch (e) {
+      console.warn('Fallo cargando Firebase desde', appUrl, e);
+    }
+  }
+  console.error('No se pudo cargar el SDK de Firebase desde ninguna CDN.');
+  toast('⚠️ No se pudo cargar Firebase (sin red o bloqueado) — usando datos locales', true);
+  return false;
+}
+
+async function loadDB() {
+  try {
+    if (fbDB) {
+      const snap = await fbDB.ref(FB_PATH).get();
+      records = snap.exists() ? (snap.val() || []) : [];
+      // Firebase puede devolver un objeto {0:.., 2:..} si hay huecos; normalizamos a array.
+      if (records && !Array.isArray(records)) records = Object.values(records);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); // refresca caché local
+    } else {
+      throw new Error('Firebase no inicializado');
+    }
+  } catch (e) {
+    console.error('Error cargando desde Firebase, usando caché local:', e);
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      records = raw ? JSON.parse(raw) : [];
+      toast('⚠️ Sin conexión a Firebase — mostrando datos guardados localmente', true);
+    } catch (e2) {
+      records = Array.isArray(records) ? records : [];
+    }
+  }
+  filtered = [...records];
+  refreshAll();
+}
+
+async function saveDB() {
+  const json = JSON.stringify(records);
+  try {
+    localStorage.setItem(STORAGE_KEY, json); // caché inmediata, nunca se pierde aunque falle la red
+  } catch (e) {
+    console.error('Error guardando en localStorage:', e);
+  }
+  try {
+    if (fbDB) await fbDB.ref(FB_PATH).set(records);
+    else throw new Error('Firebase no inicializado');
+  } catch (e) {
+    console.error('Error guardando en Firebase:', e);
+    toast('⚠️ No se pudo sincronizar con Firebase (se guardó localmente)', true);
+  }
+}
+
+// ══════════════════════════════════════
+// CLOCK
+// ══════════════════════════════════════
+function tick() {
+  const n = new Date();
+  document.getElementById('clock').textContent = n.toTimeString().slice(0,8);
+  const D=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'], M=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  document.getElementById('cdate').textContent = `${D[n.getDay()]} ${n.getDate()} ${M[n.getMonth()]} ${n.getFullYear()}`;
+}
+setInterval(tick,1000); tick();
+
+// ══════════════════════════════════════
+// TABS
+// ══════════════════════════════════════
+function go(name, btn) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('pnl-'+name).classList.add('on');
+  btn.classList.add('on');
+  if(name==='historial'){ renderHist(); }
+  if(name==='analytics') renderAnalytics();
+  if(name==='seguimiento') renderSeg();
+  if(name==='clientes') renderPortalClientes();
+}
+
+function refreshAll() {
+  renderStats();
+  renderSegStats();
+  refreshResponsablesDatalist();
+}
+function refreshResponsablesDatalist() {
+  const set=new Set();
+  records.forEach(r=>(r.timeline||[]).forEach(e=>{ if(e.responsable) set.add(e.responsable); }));
+  const dl=document.getElementById('dl-responsables');
+  if(dl) dl.innerHTML=[...set].sort().map(n=>`<option value="${esc(n)}">`).join('');
+}
+
+// ══════════════════════════════════════
+// UPLOAD + OCR  (con header corregido)
+// ══════════════════════════════════════
+const uz=document.getElementById('uz'), fi=document.getElementById('fi');
+uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('drag');});
+uz.addEventListener('dragleave',()=>uz.classList.remove('drag'));
+uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('drag');if(e.dataTransfer.files[0])procFile(e.dataTransfer.files[0]);});
+fi.addEventListener('change',e=>{if(e.target.files[0])procFile(e.target.files[0]);});
+
+function procFile(file) {
+  const rd=new FileReader();
+  rd.onload=async ev=>{
+    const b64=ev.target.result.split(',')[1];
+    const pv=document.getElementById('ipv');
+    pv.src=ev.target.result; pv.classList.add('on');
+    await runOCR(b64, file.type||'image/jpeg');
+  };
+  rd.readAsDataURL(file);
+}
+
+async function runOCR(b64, mime) {
+  const ob=document.getElementById('ob'), of_=document.getElementById('of'), ost=document.getElementById('ost');
+  ob.classList.add('on'); ost.classList.add('on');
+  ost.textContent='🤖 Analizando planilla con IA (Gemini)...';
+  let pct=0;
+  const iv=setInterval(()=>{pct=Math.min(pct+3,80);of_.style.width=pct+'%';},200);
+  try {
+    const prompt=`Eres un extractor de datos de planillas de transporte colombianas (empresa PYM LTDA / Transporte y Logística PYM).
+Analiza la imagen y extrae TODOS los datos visibles en este JSON puro (sin markdown, sin backticks, sin explicaciones):
+{
+  "manifiesto": "número de manifiesto o planilla si aparece, sino null",
+  "origen": "ciudad de origen del viaje",
+  "destino": "ciudad principal de destino del viaje, sino null",
+  "fecha": "fecha en YYYY-MM-DD, si no está visible usa null",
+  "placa": "solo la placa alfanumérica (ej: TFU590)",
+  "vehiculo": "marca y tipo del vehículo",
+  "conductor": "nombre completo del conductor",
+  "cedula": "número de cédula sin puntos ni espacios",
+  "celular": "número de celular",
+  "flete": numero_sin_simbolos_o_null,
+  "anticipo": numero_sin_simbolos_o_null,
+  "canastillas": numero_o_null,
+  "nota": "texto de instrucción especial al pie de la planilla, o null",
+  "clientes": [
+    {
+      "cliente": "nombre del cliente",
+      "factura": "número de factura o código",
+      "cajas": numero_o_null,
+      "kilos": numero_decimal_o_null,
+      "valor_kilo": numero_o_null,
+      "destino": "lugar de entrega o punto de descargue exacto como aparece",
+      "valor_envio": numero_o_null,
+      "fac_pm": "factura P&M si existe, sino null",
+      "obs": "texto de la columna RETORNO / OBSERVACIONES de esa fila, sino null"
+    }
+  ],
+  "efectivo": numero_o_null,
+  "contado": numero_o_null,
+  "credito": numero_o_null
+}
+IMPORTANTE:
+- Extrae TODOS los clientes de la tabla (pueden ser 30-40 filas).
+- La tabla suele estar dividida en secciones por ciudad de entrega (ej: filas en negrita/centradas como "VALLEDUPAR" o "BQUILLA" que ocupan toda la fila). Esas filas de sección NO son clientes: son encabezados de agrupación, ignóralas como cliente pero usa esa ciudad como contexto si el campo "destino" de las filas debajo no la incluye ya.
+- Si un campo de una fila está vacío o ilegible, usa null en ese campo específico y sigue extrayendo el resto de la fila y las demás filas sin detenerte.
+- Solo responde con el JSON exacto, sin texto adicional.`;
+
+    // La clave de Gemini YA NO vive aquí. Esta petición va a una función
+    // serverless de Netlify (/netlify/functions/gemini-ocr.js) que guarda
+    // la clave de forma segura como variable de entorno en el servidor.
+    const res=await fetch(
+      '/.netlify/functions/gemini-ocr',
+      {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ b64, mime, prompt })
+      }
+    );
+    clearInterval(iv); of_.style.width='100%';
+    const data=await res.json();
+    if(data.error){throw new Error(data.error.message||JSON.stringify(data.error));}
+    const txt=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    let parsed={};
+    try{parsed=JSON.parse(txt.replace(/```json|```/g,'').trim());}catch(e){console.error('Parse error',e,txt);}
+
+    const af=(id,val)=>{
+      if(val!==null&&val!==undefined&&String(val)!=='null'&&String(val).trim()!==''){
+        const el=document.getElementById(id);
+        if(el){el.value=String(val).trim();el.classList.add('af');setTimeout(()=>el.classList.remove('af'),3500);}
+      }
+    };
+    af('v-origen',parsed.origen); af('v-destino',parsed.destino); af('v-manif',parsed.manifiesto);
+    af('v-fecha',parsed.fecha); af('v-placa',parsed.placa);
+    af('v-veh',parsed.vehiculo); af('v-cond',parsed.conductor); af('v-ced',parsed.cedula);
+    af('v-cel',parsed.celular); af('v-flete',parsed.flete); af('v-ant',parsed.anticipo);
+    af('v-can',parsed.canastillas); af('v-nota',parsed.nota);
+    af('v-ef',parsed.efectivo); af('v-ct',parsed.contado); af('v-cr',parsed.credito);
+
+    if(parsed.clientes&&parsed.clientes.length>0){
+      document.getElementById('cb-rows').innerHTML='';
+      parsed.clientes.forEach(c=>addCRow(c));
+    }
+    ost.textContent=`✅ Extraídos ${(parsed.clientes||[]).length} clientes — revisa y ajusta si es necesario`;
+    toast(`✅ IA leyó la planilla: ${(parsed.clientes||[]).length} clientes encontrados`);
+    setTimeout(()=>{ob.classList.remove('on');ost.classList.remove('on');},5000);
+  } catch(e) {
+    clearInterval(iv); ob.classList.remove('on'); ost.classList.remove('on');
+    console.error('OCR error:',e);
+    toast('⚠️ Error al leer la imagen: '+e.message, true);
+  }
+}
+
+// ══════════════════════════════════════
+// CLIENTE ROWS
+// ══════════════════════════════════════
+function addCRow(d={}) {
+  rowId++;
+  const id='cr'+rowId;
+  const div=document.createElement('div');
+  div.className='crow'; div.id=id;
+  div.dataset.entregado = d.entregado ? '1' : '0';
+  const v=(x)=>x!==null&&x!==undefined&&String(x)!=='null'?String(x):'';
+  div.innerHTML=`
+    <input type="text" placeholder="Cliente" value="${esc(v(d.cliente))}" data-f="cliente">
+    <input type="text" placeholder="Factura" value="${esc(v(d.factura))}" data-f="factura">
+    <input type="number" placeholder="0" value="${esc(v(d.cajas))}" data-f="cajas" style="text-align:center;">
+    <input type="number" placeholder="0.0" step="0.1" value="${esc(v(d.kilos))}" data-f="kilos" style="text-align:center;">
+    <input type="number" placeholder="0" value="${esc(v(d.valor_kilo))}" data-f="valor_kilo" style="text-align:center;">
+    <input type="text" placeholder="Lugar de entrega" value="${esc(v(d.destino))}" data-f="destino">
+    <input type="number" placeholder="0" value="${esc(v(d.valor_envio))}" data-f="valor_envio" style="text-align:right;">
+    <input type="text" placeholder="Fac. P&M" value="${esc(v(d.fac_pm))}" data-f="fac_pm">
+    <input type="text" placeholder="Retorno/Obs" value="${esc(v(d.obs))}" data-f="obs">
+    <button class="btn-x" onclick="document.getElementById('${id}').remove()">×</button>
+  `;
+  document.getElementById('cb-rows').appendChild(div);
+}
+function esc(v){return String(v||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+
+// ══════════════════════════════════════
+// REVISIONES DE TEMPERATURA
+// ══════════════════════════════════════
+function addRev(d={}) {
+  revId++;
+  const id='rv'+revId;
+  const now=new Date();
+  const div=document.createElement('div');
+  div.className='rev-item'; div.id=id;
+  div.innerHTML=`
+    <div class="fgroup" style="min-width:80px;"><label>Hora</label><input type="time" value="${d.hora||now.toTimeString().slice(0,5)}" onchange="calcRev('${id}')"></div>
+    <div class="fgroup" style="min-width:80px;"><label>Temp (°C)</label><input type="number" step="0.1" placeholder="-18" value="${d.temp||''}" oninput="calcRev('${id}')"></div>
+    <div class="fgroup" style="flex:1;min-width:130px;"><label>Observación</label><input type="text" placeholder="Sin novedad..." value="${esc(d.obs||'')}"></div>
+    <div id="${id}-tv" class="rev-tval">–</div>
+    <div id="${id}-bd"></div>
+    <button class="btn-x btn-s" onclick="document.getElementById('${id}').remove()">×</button>
+  `;
+  document.getElementById('rev-list').appendChild(div);
+  if(d.temp) calcRev(id);
+}
+function getTempRange() {
+  const min=parseFloat(document.getElementById('v-tmin')?.value);
+  const max=parseFloat(document.getElementById('v-tmax')?.value);
+  return { min: isNaN(min)?-20:min, max: isNaN(max)?-15:max };
+}
+function calcRev(id) {
+  const row=document.getElementById(id); if(!row) return;
+  const t=parseFloat(row.querySelectorAll('input')[1].value);
+  const tv=document.getElementById(id+'-tv'), bd=document.getElementById(id+'-bd');
+  if(isNaN(t)){tv.textContent='–';tv.className='rev-tval';bd.innerHTML='';return;}
+  tv.textContent=t+'°C';
+  const {min,max}=getTempRange();
+  const anomalia=t<min||t>max;
+  tv.className='rev-tval '+(t<min?'tv-cold':t>max?'tv-hot':'tv-ok');
+  bd.innerHTML=anomalia?'<span class="badge bg-an">⚠️ ANOMALÍA</span>':'<span class="badge bg-ok">✅ NORMAL</span>';
+}
+function recalcAllRevs() {
+  document.querySelectorAll('#rev-list .rev-item').forEach(row=>calcRev(row.id));
+}
+
+// ══════════════════════════════════════
+// GUARDAR VIAJE
+// ══════════════════════════════════════
+function guardar() {
+  const placa=document.getElementById('v-placa').value.trim().toUpperCase();
+  const fecha=document.getElementById('v-fecha').value;
+  if(!placa){toast('⚠️ Ingresa la placa del vehículo',true);return;}
+  if(!fecha){toast('⚠️ Selecciona la fecha del viaje',true);return;}
+
+  const clientes=[];
+  document.querySelectorAll('#cb-rows .crow').forEach(row=>{
+    const obj={};
+    row.querySelectorAll('input[data-f]').forEach(i=>obj[i.dataset.f]=i.value.trim());
+    if(obj.cliente) clientes.push({...obj, entregado: row.dataset.entregado==='1'});
+  });
+
+  const {min:tempMin,max:tempMax}=getTempRange();
+  const revisiones=[];
+  document.querySelectorAll('#rev-list .rev-item').forEach(row=>{
+    const ins=row.querySelectorAll('input');
+    const t=parseFloat(ins[1].value);
+    if(!isNaN(t)) revisiones.push({hora:ins[0].value,temp:t,obs:ins[2].value.trim(),estado:(t<tempMin||t>tempMax)?'ANOMALÍA':'NORMAL'});
+  });
+
+  const totalKilos=clientes.reduce((s,c)=>s+(parseFloat(c.kilos)||0),0);
+  const origen=document.getElementById('v-origen').value.trim();
+  const destino=document.getElementById('v-destino').value.trim();
+
+  const datosComunes={
+    fecha, placa,
+    manifiesto:document.getElementById('v-manif').value.trim(),
+    vehiculo:document.getElementById('v-veh').value.trim(),
+    origen, destino,
+    conductor:document.getElementById('v-cond').value.trim(),
+    cedula:document.getElementById('v-ced').value.trim(),
+    celular:document.getElementById('v-cel').value.trim(),
+    flete:parseFloat(document.getElementById('v-flete').value)||0,
+    anticipo:parseFloat(document.getElementById('v-ant').value)||0,
+    canastillas:parseInt(document.getElementById('v-can').value)||0,
+    nota:document.getElementById('v-nota').value.trim(),
+    clientes, revisiones,
+    tempMin, tempMax,
+    pagos:{
+      efectivo:parseFloat(document.getElementById('v-ef').value)||0,
+      contado:parseFloat(document.getElementById('v-ct').value)||0,
+      credito:parseFloat(document.getElementById('v-cr').value)||0,
+    },
+    totalKilos,
+    estadoTemp:revisiones.length===0?'SIN REVISIÓN':(revisiones.some(r=>r.estado==='ANOMALÍA')?'ANOMALÍA':'NORMAL'),
+  };
+
+  if(editingId){
+    const idx=records.findIndex(r=>r.id===editingId);
+    if(idx===-1){ toast('⚠️ No se encontró el viaje a editar',true); editingId=null; return; }
+    const prev=records[idx];
+    const rec={
+      ...prev, ...datosComunes,
+      id:prev.id, creadoEn:prev.creadoEn, estadoViaje:prev.estadoViaje, timeline:[...(prev.timeline||[])]
+    };
+    rec.timeline.push({
+      tipo:'nota', hora:new Date().toTimeString().slice(0,5), fecha:new Date().toISOString().slice(0,10),
+      texto:'✏️ Datos del viaje editados manualmente', lat:null, lng:null
+    });
+    records[idx]=rec;
+    saveDB(); filtered=[...records];
+    refreshAll(); scheduleNxt();
+    toast('✅ Viaje actualizado correctamente');
+    editingId=null;
+    limpiar();
+  } else {
+    const rec={
+      id:Date.now().toString(),
+      ...datosComunes,
+      estadoViaje:'activo',
+      timeline:[{
+        tipo:'salida', hora:new Date().toTimeString().slice(0,5),
+        fecha:fecha,
+        texto:`Viaje iniciado desde ${origen||'origen'}${destino?' hacia '+destino:''}`,
+        lat:null, lng:null
+      }],
+      creadoEn:new Date().toISOString()
+    };
+    records.unshift(rec);
+    saveDB(); filtered=[...records];
+    refreshAll(); scheduleNxt();
+    toast('✅ Viaje registrado y seguimiento iniciado');
+    limpiar();
+  }
+}
+
+function editarViaje(id) {
+  const rec=records.find(r=>r.id===id);
+  if(!rec){ toast('⚠️ No se encontró el viaje',true); return; }
+
+  document.getElementById('v-fecha').value=rec.fecha||'';
+  document.getElementById('v-manif').value=rec.manifiesto||'';
+  document.getElementById('v-origen').value=rec.origen||rec.ruta||'';
+  document.getElementById('v-destino').value=rec.destino||'';
+  document.getElementById('v-placa').value=rec.placa||'';
+  document.getElementById('v-veh').value=rec.vehiculo||'';
+  document.getElementById('v-cond').value=rec.conductor||'';
+  document.getElementById('v-ced').value=rec.cedula||'';
+  document.getElementById('v-cel').value=rec.celular||'';
+  document.getElementById('v-flete').value=rec.flete||'';
+  document.getElementById('v-ant').value=rec.anticipo||'';
+  document.getElementById('v-can').value=rec.canastillas||'';
+  document.getElementById('v-nota').value=rec.nota||'';
+  document.getElementById('v-tmin').value=rec.tempMin??-20;
+  document.getElementById('v-tmax').value=rec.tempMax??-15;
+  document.getElementById('v-ef').value=rec.pagos?.efectivo||'';
+  document.getElementById('v-ct').value=rec.pagos?.contado||'';
+  document.getElementById('v-cr').value=rec.pagos?.credito||'';
+
+  document.getElementById('cb-rows').innerHTML='';
+  if((rec.clientes||[]).length) rec.clientes.forEach(c=>addCRow(c)); else addCRow();
+
+  document.getElementById('rev-list').innerHTML='';
+  if((rec.revisiones||[]).length) rec.revisiones.forEach(r=>addRev(r)); else addRev();
+
+  editingId=rec.id;
+  document.getElementById('btn-guardar').textContent='💾 ACTUALIZAR VIAJE';
+  document.getElementById('btn-cancel-edit').style.display='inline-flex';
+
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('pnl-registro').classList.add('on');
+  document.querySelectorAll('.nav-btn')[0].classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+  toast('✏️ Editando viaje '+(rec.placa||'')+' — corrige los datos y pulsa Actualizar');
+}
+
+function cancelarEdicion() {
+  editingId=null;
+  limpiar();
+  toast('Edición cancelada');
+}
+
+function limpiar() {
+  ['v-fecha','v-manif','v-origen','v-destino','v-placa','v-vehiculo','v-veh','v-cond','v-ced','v-cel','v-flete','v-ant','v-can','v-nota','v-ef','v-ct','v-cr'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('cb-rows').innerHTML='';
+  document.getElementById('rev-list').innerHTML='';
+  document.getElementById('ipv').classList.remove('on');
+  document.getElementById('v-fecha').value=new Date().toISOString().slice(0,10);
+  document.getElementById('v-tmin').value='-20';
+  document.getElementById('v-tmax').value='-15';
+  editingId=null;
+  document.getElementById('btn-guardar').textContent='💾 GUARDAR VIAJE';
+  document.getElementById('btn-cancel-edit').style.display='none';
+  addCRow(); addRev();
+}
+
+// ══════════════════════════════════════
+// STATS
+// ══════════════════════════════════════
+function renderStats() {
+  const hoy=new Date().toISOString().slice(0,10);
+  const h=records.filter(r=>r.fecha===hoy);
+  const activos=records.filter(r=>r.estadoViaje==='activo');
+  const kg=h.reduce((s,r)=>s+(r.totalKilos||0),0);
+  const an=h.filter(r=>r.estadoTemp==='ANOMALÍA').length;
+  document.getElementById('stats-reg').innerHTML=`
+    <div class="scard sy"><div class="snum">${h.length}</div><div class="slbl">Viajes hoy</div></div>
+    <div class="scard sb"><div class="snum">${h.reduce((s,r)=>s+(r.clientes||[]).length,0)}</div><div class="slbl">Clientes hoy</div></div>
+    <div class="scard sb"><div class="snum">${kg>=1000?(kg/1000).toFixed(1)+'t':kg.toFixed(0)}</div><div class="slbl">Kg hoy</div></div>
+    <div class="scard sr"><div class="snum">${an}</div><div class="slbl">Anomalías</div></div>
+    <div class="scard sg"><div class="snum">${activos.length}</div><div class="slbl">En ruta</div></div>`;
+}
+function renderSegStats() {
+  const activos=records.filter(r=>r.estadoViaje==='activo');
+  const fin=records.filter(r=>r.estadoViaje==='finalizado');
+  document.getElementById('stats-seg').innerHTML=`
+    <div class="scard sg"><div class="snum">${activos.length}</div><div class="slbl">En ruta ahora</div></div>
+    <div class="scard sy"><div class="snum">${activos.reduce((s,r)=>s+(r.timeline||[]).length,0)}</div><div class="slbl">Eventos registrados</div></div>
+    <div class="scard sb"><div class="snum">${fin.length}</div><div class="slbl">Finalizados</div></div>
+    <div class="scard sr"><div class="snum">${records.filter(r=>r.estadoTemp==='ANOMALÍA').length}</div><div class="slbl">Anomalías totales</div></div>`;
+}
+
+// ══════════════════════════════════════
+// SEGUIMIENTO
+// ══════════════════════════════════════
+function renderSeg() {
+  renderSegStats();
+  const list=document.getElementById('seg-list');
+  const empty=document.getElementById('seg-empty');
+  // Solo viajes activos: al finalizar, el viaje desaparece de Seguimiento y queda únicamente en Historial
+  const activos=records.filter(r=>r.estadoViaje==='activo');
+  const sorted=[...activos].sort((a,b)=>b.creadoEn.localeCompare(a.creadoEn));
+  if(!sorted.length){list.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  list.innerHTML=sorted.map(v=>segCard(v)).join('');
+}
+
+// Devuelve siempre un arreglo de fotos para una entrega, sin importar si
+// viene del formato nuevo (fotos_fac: []) o del formato antiguo de una sola
+// foto (foto_fac: '...'), para no perder datos ya guardados.
+function getFotosFac(c){
+  if(c.fotos_fac && c.fotos_fac.length) return c.fotos_fac;
+  if(c.foto_fac) return [c.foto_fac];
+  return [];
+}
+
+function segCard(v) {
+  const destinos=[...new Set((v.clientes||[]).map(c=>c.destino).filter(Boolean))];
+  const entregados=(v.clientes||[]).filter(c=>c.entregado).length;
+  const totalCli=(v.clientes||[]).length;
+  const progPct=totalCli>0?Math.round(entregados/totalCli*100):0;
+  const isActive=v.estadoViaje==='activo';
+  const lastEvt=(v.timeline||[]).slice(-1)[0];
+
+  const estadoPill=isActive
+    ?'<span class="vest vest-active">🟢 EN RUTA</span>'
+    :'<span class="vest vest-fin">⬛ FINALIZADO</span>';
+  const isOpen=segOpen.has(v.id);
+
+  // Timeline HTML
+  const tlHTML=(v.timeline||[]).map(ev=>tlEventHTML(ev, v.tempMin??-20, v.tempMax??-15)).join('');
+
+  // Clientes checklist
+  const cliCheck=(v.clientes||[]).map((c,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);${i===((v.clientes||[]).length-1)?'border-bottom:none;':''}">
+      <button onclick="toggleEntrega('${v.id}',${i})" style="background:${c.entregado?'var(--g)':'var(--border)'};border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;flex-shrink:0;transition:background .2s;font-size:14px;display:flex;align-items:center;justify-content:center;color:${c.entregado?'#000':'var(--sub)'};">${c.entregado?'✓':'○'}</button>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:15px;font-weight:600;${c.entregado?'text-decoration:line-through;color:var(--sub)':''}">${c.cliente||'—'}</div>
+        <div style="font-size:12px;color:var(--sub);">${c.cajas||'—'} cajas · ${c.kilos||'—'} kg · <span class="dbadge">${c.destino||'—'}</span>${c.obs?' · '+c.obs:''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;max-width:160px;">
+        ${getFotosFac(c).map((f,fi)=>`<span style="position:relative;display:inline-block;line-height:0;">
+          <img src="${f}" onclick="verImg('${f}')" title="Ver foto ${fi+1}" style="width:24px;height:24px;object-fit:cover;border-radius:4px;cursor:pointer;border:1px solid var(--border);">
+          <button onclick="eliminarFotoFac('${v.id}',${i},${fi},event)" title="Eliminar foto" style="position:absolute;top:-6px;right:-6px;width:14px;height:14px;border-radius:50%;background:var(--r);color:#fff;border:none;font-size:10px;line-height:1;cursor:pointer;padding:0;">✕</button>
+        </span>`).join('')}
+        <label class="btn-s btn-sm" style="cursor:pointer;margin:0;padding:4px 8px;font-size:11px;" title="Adjuntar foto(s)">
+          📷
+          <input type="file" accept="image/*" multiple style="display:none;" onchange="subirFacSeg('${v.id}',${i},this)">
+        </label>
+      </div>
+      ${c.entregado?'<span class="badge bg-ok" style="font-size:10px;">ENTREGADO</span>':'<span class="badge bg-dim" style="font-size:10px;">PENDIENTE</span>'}
+    </div>`).join('');
+
+  return `<div class="seg-card" id="sc-${v.id}">
+    <div class="seg-head" onclick="togSeg('${v.id}')">
+      <div class="seg-placa">${v.placa}</div>
+      <div class="seg-info">
+        <div class="seg-ruta">${v.origen||v.ruta||'—'} → ${v.destino||destinos.slice(0,3).join(' · ')||'—'}</div>
+        <div class="seg-meta">${v.fecha} · ${v.manifiesto?'Manif. '+v.manifiesto+' · ':''}${v.conductor||'Sin conductor'} · ${v.vehiculo||''}</div>
+      </div>
+      <div class="seg-mini-prog" title="${progPct}% entregado"><div style="width:${progPct}%;background:${progPct===100?'var(--g)':'var(--y)'};"></div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
+        ${estadoPill}
+        <span style="font-size:12px;color:var(--sub);">${entregados}/${totalCli} clientes</span>
+      </div>
+      <div class="seg-tog${isOpen?' open':''}" id="stog-${v.id}">▼</div>
+    </div>
+
+    <div class="seg-body${isOpen?' on':''}" id="sb-${v.id}">
+      <!-- BARRA DE PROGRESO -->
+      <div style="margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--sub);margin-bottom:5px;">
+          <span>Progreso de entregas</span><span>${progPct}%</span>
+        </div>
+        <div style="background:var(--border);border-radius:4px;height:8px;overflow:hidden;">
+          <div style="width:${progPct}%;height:100%;background:${progPct===100?'var(--g)':'var(--y)'};border-radius:4px;transition:width .5s;"></div>
+        </div>
+        ${lastEvt?`<div style="font-size:12px;color:var(--sub);margin-top:5px;">Último evento: <strong style="color:var(--text)">${lastEvt.texto}</strong> — ${lastEvt.hora}</div>`:''}
+      </div>
+
+      <!-- GRID: timeline + clientes -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+        <!-- TIMELINE -->
+        <div>
+          <div class="tl-head">
+            <div class="tl-title">📍 LÍNEA DE TIEMPO</div>
+            <div class="tl-actions">
+              ${isActive?`<button class="btn-b btn-sm" onclick="showEventForm('${v.id}')">+ Evento</button>`:''}
+              ${isActive?`<button class="btn-r btn-sm" onclick="finalizarViaje('${v.id}')">🏁 Finalizar</button>`:''}
+            </div>
+          </div>
+          <div class="timeline" id="tl-${v.id}">
+            ${tlHTML}
+          </div>
+          <div id="aef-${v.id}" style="display:none;">
+            ${addEventFormHTML(v.id, v.clientes||[])}
+          </div>
+        </div>
+
+        <!-- CLIENTES CHECKLIST -->
+        <div>
+          <div class="tl-head">
+            <div class="tl-title">📦 CLIENTES DEL VIAJE</div>
+          </div>
+          <div style="background:var(--card2);border:1px solid var(--border);border-radius:var(--rad-sm);padding:4px 12px;">
+            ${cliCheck||'<p style="color:var(--sub);font-size:14px;padding:12px 0;">Sin clientes registrados.</p>'}
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>`;
+}
+
+function tlEventHTML(ev, tmin=-20, tmax=-15) {
+  const dotClass={
+    salida:'dot-salida',temperatura:'dot-temp',descargue:'dot-descargue',
+    novedad:'dot-novedad',ubicacion:'dot-ubicacion',llegada:'dot-llegada',nota:'dot-nota'
+  }[ev.tipo]||'dot-nota';
+
+  const icons={salida:'🟢',temperatura:'🌡️',descargue:'📦',novedad:'⚠️',ubicacion:'📍',llegada:'🏁',nota:'📝'};
+  const labels={salida:'SALIDA',temperatura:'TEMPERATURA',descargue:'DESCARGUE',novedad:'NOVEDAD',ubicacion:'UBICACIÓN',llegada:'LLEGADA',nota:'NOTA'};
+
+  let meta='';
+  if(ev.tipo==='temperatura') {
+    const an=ev.temp<tmin||ev.temp>tmax;
+    meta=`<span>Temp: <strong style="color:${ev.temp<tmin?'var(--b)':ev.temp>tmax?'var(--r)':'var(--g)'}">${ev.temp}°C</strong></span><span class="badge ${an?'bg-an':'bg-ok'}" style="font-size:10px;">${an?'ANOMALÍA':'NORMAL'}</span>`;
+  }
+  if(ev.tipo==='descargue'&&ev.cliente) meta=`<span>Cliente: <strong>${ev.cliente}</strong></span>`;
+
+  let locHTML='';
+  if(ev.lat&&ev.lng) locHTML=`<div class="tl-bloc">📍 <a href="https://maps.google.com/?q=${ev.lat},${ev.lng}" target="_blank">${ev.lat.toFixed(5)}, ${ev.lng.toFixed(5)} — Ver en mapa</a></div>`;
+  const respHTML = ev.responsable ? `<div style="font-size:12px;color:var(--sub);margin-top:4px;">👤 Registrado por: <strong style="color:var(--text)">${ev.responsable}</strong></div>` : '';
+
+  return `<div class="tl-event">
+    <div class="tl-dot ${dotClass}">${icons[ev.tipo]||'📝'}</div>
+    <div class="tl-bubble${ev.tipo==='descargue'?' tl-descargue':''}">
+      <div class="tl-bhead">
+        <span class="tl-btype">${labels[ev.tipo]||ev.tipo.toUpperCase()}</span>
+        <span class="tl-btime">${ev.fecha||''} ${ev.hora}</span>
+      </div>
+      <div class="tl-btext">${ev.texto}</div>
+      ${meta?`<div class="tl-bmeta">${meta}</div>`:''}
+      ${locHTML}
+      ${respHTML}
+    </div>
+  </div>`;
+}
+
+function addEventFormHTML(vid, clientes) {
+  const cliOpts=clientes.map((c,i)=>{
+    const etiqueta=`${c.cliente||'—'} · Fact ${c.factura||'—'} · ${c.destino||'—'}${c.entregado?' ✓ ya entregado':''}`;
+    return `<option value="${i}">${esc(etiqueta)}</option>`;
+  }).join('');
+  const ultimoResp=esc(localStorage.getItem('pym_ultimo_responsable')||'');
+  return `<div class="add-event-form">
+    <div class="aef-title">➕ NUEVO EVENTO</div>
+    <div class="tipo-select">
+      <button class="tipo-btn tb-salida" onclick="selTipo('${vid}','salida',this)">🟢 Salida</button>
+      <button class="tipo-btn tb-temp sel" onclick="selTipo('${vid}','temperatura',this)">🌡️ Temperatura</button>
+      <button class="tipo-btn tb-descargue" onclick="selTipo('${vid}','descargue',this)">📦 Descargue</button>
+      <button class="tipo-btn tb-novedad" onclick="selTipo('${vid}','novedad',this)">⚠️ Novedad</button>
+      <button class="tipo-btn tb-ubicacion" onclick="selTipo('${vid}','ubicacion',this)">📍 Ubicación</button>
+      <button class="tipo-btn tb-llegada" onclick="selTipo('${vid}','llegada',this)">🏁 Llegada</button>
+      <button class="tipo-btn tb-nota" onclick="selTipo('${vid}','nota',this)">📝 Nota</button>
+    </div>
+    <div class="aef-grid">
+      <div class="fgroup"><label>Hora</label><input type="time" id="aef-hora-${vid}" value="${new Date().toTimeString().slice(0,5)}"></div>
+      <div class="fgroup" id="aef-temp-g-${vid}" style="display:none;"><label>Temperatura (°C)</label><input type="number" step="0.1" placeholder="-18" id="aef-temp-${vid}"></div>
+      <div class="fgroup" id="aef-cli-g-${vid}" style="display:none;"><label>Cliente descargado</label><select id="aef-cli-${vid}"><option value="">— seleccionar —</option>${cliOpts}</select></div>
+      <div class="fgroup"><label>Responsable del seguimiento</label><input type="text" id="aef-resp-${vid}" list="dl-responsables" placeholder="Nombre de quien reporta" value="${ultimoResp}"></div>
+    </div>
+    <div class="fgroup" style="margin-top:10px;"><label>Descripción / Texto</label><textarea id="aef-txt-${vid}" placeholder="Describe el evento..." style="min-height:44px;"></textarea></div>
+    <div class="gps-row" style="margin-top:10px;">
+      <div class="fgroup" style="flex:1;"><label>Latitud</label><input type="number" step="any" placeholder="4.710989" id="aef-lat-${vid}"></div>
+      <div class="fgroup" style="flex:1;"><label>Longitud</label><input type="number" step="any" placeholder="-74.072090" id="aef-lng-${vid}"></div>
+      <button class="btn-b btn-sm" style="align-self:flex-end;white-space:nowrap;" onclick="getGPS('${vid}')">📡 GPS</button>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn-p" onclick="addEvento('${vid}')">AGREGAR EVENTO</button>
+      <button class="btn-s" onclick="hideEventForm('${vid}')">Cancelar</button>
+    </div>
+  </div>`;
+}
+
+function selTipo(vid, tipo, btn) {
+  const form=document.getElementById('aef-'+vid);
+  form.querySelectorAll('.tipo-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  activeEventViajeId=vid; tipoSel=tipo;
+  // Show/hide conditional fields
+  const tg=document.getElementById('aef-temp-g-'+vid);
+  const cg=document.getElementById('aef-cli-g-'+vid);
+  if(tg) tg.style.display=(tipo==='temperatura')?'flex':'none';
+  if(cg) cg.style.display=(tipo==='descargue')?'flex':'none';
+}
+
+function showEventForm(vid) {
+  activeEventViajeId=vid; tipoSel='temperatura';
+  const el=document.getElementById('aef-'+vid);
+  if(el){el.style.display='block';el.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  // Set temperatura as default selected
+  const tg=document.getElementById('aef-temp-g-'+vid);
+  if(tg) tg.style.display='flex';
+  const form=document.getElementById('aef-'+vid);
+  if(form){
+    form.querySelectorAll('.tipo-btn').forEach(b=>b.classList.remove('sel'));
+    const tb=form.querySelector('.tb-temp');
+    if(tb) tb.classList.add('sel');
+  }
+}
+function hideEventForm(vid) {
+  const el=document.getElementById('aef-'+vid); if(el) el.style.display='none';
+}
+
+function getGPS(vid) {
+  if(!navigator.geolocation){toast('GPS no disponible en este navegador',true);return;}
+  toast('📡 Obteniendo ubicación GPS...');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const lat=pos.coords.latitude, lng=pos.coords.longitude;
+    const latEl=document.getElementById('aef-lat-'+vid);
+    const lngEl=document.getElementById('aef-lng-'+vid);
+    if(latEl) latEl.value=lat.toFixed(6);
+    if(lngEl) lngEl.value=lng.toFixed(6);
+    toast(`📍 Ubicación capturada: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+  }, err=>{
+    toast('No se pudo obtener el GPS: '+err.message, true);
+  },{enableHighAccuracy:true,timeout:10000});
+}
+
+function addEvento(vid) {
+  const rec=records.find(r=>r.id===vid); if(!rec) return;
+  const hora=document.getElementById('aef-hora-'+vid)?.value||new Date().toTimeString().slice(0,5);
+  const txt=document.getElementById('aef-txt-'+vid)?.value.trim()||'';
+  const lat=parseFloat(document.getElementById('aef-lat-'+vid)?.value)||null;
+  const lng=parseFloat(document.getElementById('aef-lng-'+vid)?.value)||null;
+  const temp=parseFloat(document.getElementById('aef-temp-'+vid)?.value)||null;
+  const cliRaw=document.getElementById('aef-cli-'+vid)?.value;
+  const cliIdx=(cliRaw!==undefined&&cliRaw!=='')?parseInt(cliRaw,10):null;
+  const cliObj=(cliIdx!==null&&rec.clientes&&rec.clientes[cliIdx])?rec.clientes[cliIdx]:null;
+  const cli=cliObj?cliObj.cliente:null;
+  const cliDetalle=cliObj?`${cliObj.cliente}${cliObj.factura?' (Fact '+cliObj.factura+')':''}${cliObj.destino?' — '+cliObj.destino:''}`:null;
+  const responsable=document.getElementById('aef-resp-'+vid)?.value.trim()||'';
+
+  if(!txt&&tipoSel!=='ubicacion'){toast('⚠️ Escribe una descripción del evento',true);return;}
+
+  const defaultTexts={
+    salida:`Vehículo en salida${txt?' — '+txt:''}`,
+    temperatura:`Revisión de temperatura${txt?' — '+txt:''}`,
+    descargue:`Descargue completado${cliDetalle?' — '+cliDetalle:''}${txt?' · '+txt:''}`,
+    novedad:`Novedad: ${txt}`,
+    ubicacion:`Ubicación registrada${txt?' — '+txt:''}`,
+    llegada:`Llegada confirmada${txt?' — '+txt:''}`,
+    nota:txt
+  };
+
+  const evento={
+    tipo:tipoSel,
+    hora, fecha:new Date().toISOString().slice(0,10),
+    texto:defaultTexts[tipoSel]||txt,
+    lat:!isNaN(lat)?lat:null,
+    lng:!isNaN(lng)?lng:null,
+    temp:tipoSel==='temperatura'&&!isNaN(temp)?temp:null,
+    cliente:cli||null,
+    clienteIdx:cliIdx,
+    responsable:responsable||null
+  };
+
+  if(responsable){
+    try{ localStorage.setItem('pym_ultimo_responsable', responsable); }catch(e){}
+    refreshResponsablesDatalist();
+  }
+
+  if(!rec.timeline) rec.timeline=[];
+  rec.timeline.push(evento);
+
+  // Actualizar estadoTemp si es revisión
+  if(tipoSel==='temperatura'&&!isNaN(temp)) {
+    const tmin=rec.tempMin??-20, tmax=rec.tempMax??-15;
+    const anomalia=temp<tmin||temp>tmax;
+    if(anomalia) rec.estadoTemp='ANOMALÍA';
+    else if(rec.estadoTemp!=='ANOMALÍA') rec.estadoTemp='NORMAL';
+    if(!rec.revisiones) rec.revisiones=[];
+    rec.revisiones.push({hora,temp,obs:txt,estado:anomalia?'ANOMALÍA':'NORMAL'});
+  }
+  // Marcar cliente entregado (por índice exacto, no por nombre, para
+  // distinguir entregas repetidas del mismo cliente en distintos puntos/facturas)
+  if(tipoSel==='descargue'&&cliIdx!==null&&rec.clientes&&rec.clientes[cliIdx]) {
+    rec.clientes[cliIdx].entregado=true;
+  }
+  // Finalizar si es llegada
+  if(tipoSel==='llegada') {
+    rec.estadoViaje='finalizado';
+    toast('🏁 Viaje marcado como finalizado');
+  }
+
+  saveDB(); renderSeg();
+  toast('✅ Evento agregado a la línea de tiempo');
+}
+
+function finalizarViaje(vid) {
+  if(!confirm('¿Marcar este viaje como finalizado?')) return;
+  const rec=records.find(r=>r.id===vid); if(!rec) return;
+  rec.estadoViaje='finalizado';
+  if(!rec.timeline) rec.timeline=[];
+  rec.timeline.push({tipo:'llegada',hora:new Date().toTimeString().slice(0,5),fecha:new Date().toISOString().slice(0,10),texto:'Viaje finalizado',lat:null,lng:null});
+  saveDB(); renderSeg(); renderStats();
+  toast('🏁 Viaje finalizado');
+}
+
+function toggleEntrega(vid, idx) {
+  const rec=records.find(r=>r.id===vid); if(!rec) return;
+  rec.clientes[idx].entregado=!rec.clientes[idx].entregado;
+  if(rec.clientes[idx].entregado) {
+    if(!rec.timeline) rec.timeline=[];
+    rec.timeline.push({tipo:'descargue',hora:new Date().toTimeString().slice(0,5),fecha:new Date().toISOString().slice(0,10),texto:`Entregado: ${rec.clientes[idx].cliente} en ${rec.clientes[idx].destino||'destino'}`,lat:null,lng:null,cliente:rec.clientes[idx].cliente});
+  }
+  saveDB(); renderSeg();
+}
+
+// Anexar/actualizar foto de factura o de la entrega directamente desde Seguimiento.
+// Se guarda por índice exacto de la fila (rec.clientes[idx]), así que no se
+// confunde entre entregas repetidas del mismo cliente en el mismo viaje.
+// Comprime la imagen en el navegador antes de subirla (menos datos, subida
+// más rápida) y la deja lista como Blob para enviar a Cloudinary.
+function comprimirImagen(file, maxW=1280, quality=0.75) {
+  return new Promise(resolve=>{
+    const rd=new FileReader();
+    rd.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const canvas=document.createElement('canvas');
+        const scale=Math.min(1, maxW/img.width);
+        canvas.width=img.width*scale;
+        canvas.height=img.height*scale;
+        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+        canvas.toBlob(blob=>resolve(blob), 'image/jpeg', quality);
+      };
+      img.src=e.target.result;
+    };
+    rd.readAsDataURL(file);
+  });
+}
+
+function blobToDataURL(blob) {
+  return new Promise(resolve=>{
+    const rd=new FileReader();
+    rd.onload=()=>resolve(rd.result);
+    rd.readAsDataURL(blob);
+  });
+}
+
+// Sube la foto ya comprimida a Cloudinary y devuelve la URL pública.
+async function subirACloudinary(blob) {
+  const fd=new FormData();
+  fd.append('file', blob);
+  fd.append('upload_preset', CLOUDINARY_PRESET);
+  fd.append('folder', CLOUDINARY_FOLDER);
+  const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, { method:'POST', body:fd });
+  if(!res.ok) throw new Error('Cloudinary respondió '+res.status);
+  const data=await res.json();
+  if(!data.secure_url) throw new Error('Cloudinary no devolvió una URL');
+  return data.secure_url;
+}
+
+function subirFacSeg(vid, idx, input) {
+  const files=Array.from(input.files||[]);
+  if(!files.length) return;
+  toast(`⏳ Subiendo ${files.length>1?files.length+' fotos':'foto'}...`);
+  Promise.all(files.map(async file=>{
+    const blob=await comprimirImagen(file);
+    try {
+      return await subirACloudinary(blob);
+    } catch(e) {
+      // Sin internet o Cloudinary caído: no se pierde la foto, se guarda
+      // en base64 localmente como respaldo hasta que se pueda resubir.
+      console.error('Fallo subiendo a Cloudinary, se guarda localmente:', e);
+      return await blobToDataURL(blob);
+    }
+  })).then(urls=>{
+    const rec=records.find(r=>r.id===vid);
+    if(!rec||!rec.clientes||!rec.clientes[idx]) return;
+    const c=rec.clientes[idx];
+    const existentes=getFotosFac(c);
+    c.fotos_fac=[...existentes, ...urls];
+    delete c.foto_fac; // ya migrado a fotos_fac, evita duplicar la misma foto
+    saveDB(); renderSeg();
+    const nFallback=urls.filter(u=>u.startsWith('data:')).length;
+    if(nFallback) toast(`⚠️ ${nFallback} foto(s) guardada(s) localmente — no se pudo subir a Cloudinary (revisa la conexión)`, true);
+    else toast(`✅ ${urls.length>1?urls.length+' fotos subidas':'Foto subida'} — ya se ven en el enlace de seguimiento del cliente`);
+  }).catch(e=>{
+    console.error(e);
+    toast('⚠️ Error subiendo las fotos', true);
+  });
+}
+
+function eliminarFotoFac(vid, idx, fotoIdx, ev) {
+  if(ev) ev.stopPropagation();
+  const rec=records.find(r=>r.id===vid);
+  if(!rec||!rec.clientes||!rec.clientes[idx]) return;
+  const c=rec.clientes[idx];
+  const fotos=getFotosFac(c);
+  fotos.splice(fotoIdx,1);
+  c.fotos_fac=fotos;
+  delete c.foto_fac;
+  saveDB(); renderSeg();
+  toast('🗑️ Foto eliminada');
+}
+
+// Visor de fotos mejorado: se construye a sí mismo (funciona igual en el
+// panel de administrador y en el portal del cliente, sin depender de un
+// modal fijo en el HTML). Cierra con el botón ✕, clic afuera, o tecla Esc.
+function openLightbox(src) {
+  let ov=document.getElementById('lightbox-ov');
+  if(!ov){
+    ov=document.createElement('div');
+    ov.id='lightbox-ov';
+    ov.style.cssText='position:fixed;inset:0;background:rgba(10,12,18,.9);z-index:5000;display:flex;align-items:center;justify-content:center;cursor:zoom-out;padding:24px;animation:lbFade .15s ease;';
+    ov.onclick=()=>closeLightbox();
+
+    const img=document.createElement('img');
+    img.id='lightbox-img';
+    img.style.cssText='max-width:94%;max-height:90%;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.6);cursor:default;';
+    img.onclick=e=>e.stopPropagation();
+
+    const closeBtn=document.createElement('button');
+    closeBtn.textContent='✕';
+    closeBtn.setAttribute('aria-label','Cerrar');
+    closeBtn.style.cssText='position:fixed;top:18px;right:22px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:23px;width:38px;height:38px;border-radius:50%;cursor:pointer;line-height:1;';
+    closeBtn.onclick=e=>{e.stopPropagation();closeLightbox();};
+
+    const dlBtn=document.createElement('a');
+    dlBtn.textContent='⬇ Descargar';
+    dlBtn.id='lightbox-dl';
+    dlBtn.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:14px;padding:8px 16px;border-radius:20px;text-decoration:none;';
+    dlBtn.onclick=e=>e.stopPropagation();
+
+    ov.appendChild(img); ov.appendChild(closeBtn); ov.appendChild(dlBtn);
+    document.body.appendChild(ov);
+    document.addEventListener('keydown', lightboxEscHandler);
+  }
+  document.getElementById('lightbox-img').src=src;
+  const dl=document.getElementById('lightbox-dl');
+  dl.href=src; dl.download='foto-entrega.jpg';
+}
+function closeLightbox(){
+  const ov=document.getElementById('lightbox-ov');
+  if(ov) ov.remove();
+  document.removeEventListener('keydown', lightboxEscHandler);
+}
+function lightboxEscHandler(e){ if(e.key==='Escape') closeLightbox(); }
+// Alias por compatibilidad con llamadas existentes a verImg(...)
+function verImg(src){ openLightbox(src); }
+
+// ══════════════════════════════════════
+// PORTAL CLIENTES — enlaces de seguimiento por cliente
+// ══════════════════════════════════════
+function renderPortalClientes() {
+  const container=document.getElementById('clientes-container');
+  container.innerHTML='';
+  const seen=new Set();
+  // Solo viajes activos: una vez que se le da "Llegada" desde Seguimiento
+  // (estadoViaje pasa a 'finalizado'), sus clientes ya no aparecen aquí.
+  const activos=records.filter(r=>r.estadoViaje==='activo');
+  activos.forEach(v=>{
+    (v.clientes||[]).forEach(c=>{
+      if(!c.cliente) return;
+      const key=v.id+'|'+c.cliente;
+      if(seen.has(key)) return; // ya se generó tarjeta para este cliente en este viaje
+      seen.add(key);
+      const filas=v.clientes.filter(x=>x.cliente===c.cliente);
+      const facturas=filas.map(x=>x.factura).filter(Boolean).join(', ')||'—';
+      const entregadas=filas.filter(x=>x.entregado).length;
+      const div=document.createElement('div');
+      div.className='card';
+      div.style.marginBottom='10px';
+      div.innerHTML=`
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div>
+            <strong>${esc(c.cliente)}</strong> <span style="font-size:12px;color:var(--sub);">— ${v.placa} · ${v.fecha||''}</span><br>
+            <small style="color:var(--sub);">${filas.length} entrega${filas.length>1?'s':''} · Fact: ${esc(facturas)} · ${entregadas}/${filas.length} entregada${filas.length>1?'s':''}</small>
+          </div>
+          <button class="btn-b btn-sm" onclick="generarEnlaceCliente('${v.id}','${esc(c.cliente).replace(/'/g,"\\'")}')">🔗 Compartir enlace</button>
+        </div>`;
+      container.appendChild(div);
+    });
+  });
+  if(!seen.size) container.innerHTML='<p style="text-align:center;color:var(--sub);padding:20px 0;">Sin clientes en viajes activos por ahora. (Los viajes finalizados ya no se listan aquí, pero sus enlaces ya compartidos siguen funcionando.)</p>';
+}
+
+// Genera un token corto y opaco (no expone el ID del viaje ni el nombre del
+// cliente en la URL, a diferencia del antiguo esquema en base64). El token
+// se guarda una sola vez por cliente/viaje en Firebase para que el enlace
+// no cambie si se vuelve a generar.
+function genToken(){
+  if(window.crypto && crypto.randomUUID) return crypto.randomUUID().replace(/-/g,'').slice(0,10);
+  return (Date.now().toString(36)+Math.random().toString(36).slice(2,8)).slice(0,10);
+}
+
+function generarEnlaceCliente(vId, cName) {
+  const v=records.find(r=>r.id===vId);
+  if(!v){ toast('⚠️ Viaje no encontrado', true); return; }
+  const filas=(v.clientes||[]).filter(c=>c.cliente===cName);
+  if(!filas.length){ toast('⚠️ Cliente no encontrado', true); return; }
+  let token=filas.find(c=>c.token)?.token;
+  if(!token){
+    token=genToken();
+    filas.forEach(c=>c.token=token);
+    saveDB();
+  }
+  // Enlace limpio tipo /seguimiento/XXXXXXXXXX (requiere la regla de
+  // redirección de Netlify — ver archivo _redirects). Si por alguna razón
+  // esa regla no está activa todavía, se incluye respaldo automático con
+  // ?s= más abajo en checkPortal(), así el enlace nunca se rompe.
+  const dir=window.location.pathname.replace(/[^/]*$/, '');
+  const enlace=window.location.origin+dir+'seguimiento/'+token;
+  document.getElementById('modal-link-text').textContent=enlace;
+  document.getElementById('modal-compartir').classList.add('on');
+}
+
+function copiarEnlace() {
+  navigator.clipboard.writeText(document.getElementById('modal-link-text').textContent);
+  toast('✅ Enlace copiado');
+}
+
+// ══════════════════════════════════════
+// PORTAL CLIENTE — vista pública que abre el cliente desde su enlace
+// ══════════════════════════════════════
+function checkPortal() {
+  const params=new URLSearchParams(window.location.search);
+  // Formato nuevo (seguro): ruta limpia /seguimiento/TOKEN (vía redirección
+  // de Netlify) o, como respaldo si esa regla aún no está activa, ?s=TOKEN.
+  const pathMatch=window.location.pathname.match(/\/seguimiento\/([A-Za-z0-9]+)/);
+  const token=pathMatch ? pathMatch[1] : params.get('s');
+  // Formato antiguo (compatibilidad con enlaces ya compartidos antes de
+  // esta actualización): ?track=<base64 de vId|cliente>.
+  const trackLegacy=params.get('track');
+  if(!token && !trackLegacy) return false;
+
+  let vIdLegacy, cNameLegacy;
+  if(!token && trackLegacy){
+    try { [vIdLegacy, cNameLegacy]=decodeURIComponent(escape(atob(trackLegacy))).split('|'); }
+    catch(e){ return false; }
+  }
+
+  const doRender=()=>{
+    let v, cs;
+    if(token){
+      v=records.find(r=>(r.clientes||[]).some(c=>c.token===token));
+      cs=v ? v.clientes.filter(c=>c.token===token) : null;
+    } else {
+      v=records.find(r=>r.id===vIdLegacy);
+      // Agrupa TODAS las entregas de ese cliente en este viaje (mismo nombre =
+      // puede tener varias facturas / puntos de entrega distintos).
+      cs=v ? (v.clientes||[]).filter(c=>c.cliente===cNameLegacy) : null;
+    }
+    if(!v || !cs || !cs.length){ document.body.innerHTML='<div style="max-width:480px;margin:80px auto;padding:20px;text-align:center;color:var(--sub);font-family:\'DM Sans\',sans-serif;">Este enlace de seguimiento ya no está disponible.</div>'; return; }
+    // Si ya se marcó como entregada TODA la mercancía de este cliente, no
+    // tiene sentido seguir mostrándole la ubicación en vivo del vehículo:
+    // se le muestra una confirmación de entrega en su lugar.
+    if(cs.every(c=>c.entregado)){ renderVistaEntregada(v, cs); return; }
+    renderVistaCliente(v, cs);
+  };
+
+  doRender();
+
+  // Tiempo real: si Firebase está disponible, escucha cambios en vivo para
+  // que el cliente vea fotos/eventos/estado nuevos sin recargar la página.
+  if(fbDB) {
+    fbDB.ref(FB_PATH).on('value', snap=>{
+      let data=snap.exists()?(snap.val()||[]):[];
+      if(data && !Array.isArray(data)) data=Object.values(data);
+      records=data;
+      doRender();
+    });
+  }
+  return true;
+}
+
+// Vista simplificada para cuando ya se entregó toda la mercancía de este
+// cliente: no tiene sentido seguir mostrando la ubicación en vivo del
+// vehículo. Se deja disponible el PDF como comprobante de la entrega.
+function renderVistaEntregada(v, cs) {
+  window.__portalViaje=v; window.__portalClientes=cs;
+  const totalCajas=cs.reduce((s,c)=>s+(parseFloat(c.cajas)||0),0);
+  const totalKilos=cs.reduce((s,c)=>s+(parseFloat(c.kilos)||0),0);
+  document.body.innerHTML=`
+    <div style="max-width:520px;margin:0 auto;padding:24px 16px 60px;font-family:'DM Sans',sans-serif;">
+      <div class="portal-hero" style="background:linear-gradient(135deg, rgba(29,158,74,.18), var(--card));">
+        <h1 style="color:var(--g);">✅ Entrega Completada</h1>
+        <p>Gracias por confiar en Transporte &amp; Logística PYM</p>
+      </div>
+      <div class="portal-card" style="text-align:center;">
+        <div class="badge bg-ok" style="font-size:15px;padding:11px 22px;margin-bottom:16px;">MERCANCÍA ENTREGADA</div>
+        <p style="color:var(--sub);font-size:14px;line-height:1.5;">
+          Tu pedido (${cs.length} entrega${cs.length>1?'s':''} · ${totalCajas||'—'} cajas · ${totalKilos||'—'} kg)
+          ya fue entregado. Este enlace deja de mostrar la ubicación en vivo del vehículo.
+        </p>
+        <button id="btn-pdf-cliente" class="btn-p" style="width:100%;margin-top:16px;" onclick="generarPDFClientePortal()">📄 Descargar comprobante en PDF</button>
+      </div>
+      <p style="text-align:center;font-size:12px;color:var(--sub);margin:16px 0;">Transporte &amp; Logística PYM SAS</p>
+    </div>`;
+}
+
+function renderVistaCliente(v, cs) {
+  // Se guardan en variables globales para que el botón de descarga de PDF
+  // (que usa un onclick simple en el HTML generado) pueda acceder a los
+  // mismos datos sin tener que volver a buscarlos.
+  window.__portalViaje=v; window.__portalClientes=cs;
+  const totalCajas=cs.reduce((s,c)=>s+(parseFloat(c.cajas)||0),0);
+  const totalKilos=cs.reduce((s,c)=>s+(parseFloat(c.kilos)||0),0);
+  const entregadas=cs.filter(c=>c.entregado).length;
+  const estado = entregadas===cs.length
+    ? {cls:'bg-ok', txt:'✅ ENTREGADO'}
+    : entregadas>0
+      ? {cls:'bg-y', txt:'🟡 PARCIALMENTE ENTREGADO'}
+      : {cls:'bg-y', txt:'🚚 EN RUTA'};
+
+  // La línea de tiempo del cliente muestra los eventos GENERALES del viaje
+  // completos (salida, temperatura, ubicación, llegada, novedad, nota),
+  // pero de los eventos de DESCARGUE solo deja ver los que son de este
+  // mismo cliente — así no aparecen entregas de otros clientes del viaje.
+  const nombresCliente=new Set(cs.map(c=>c.cliente));
+  const tlFiltrado=(v.timeline||[]).filter(ev=>ev.tipo!=='descargue'||nombresCliente.has(ev.cliente));
+  const tlHTML=tlFiltrado.map(ev=>tlEventHTML(ev, v.tempMin??-20, v.tempMax??-15)).join('');
+
+  document.body.innerHTML=`
+    <div style="max-width:640px;margin:0 auto;padding:20px;">
+      <div class="portal-hero"><h1>📦 Seguimiento</h1><p>Estado de tu mercancía</p></div>
+
+      <div class="portal-card" style="text-align:center;">
+        <button id="btn-pdf-cliente" class="btn-p" style="width:100%;" onclick="generarPDFClientePortal()">📄 Descargar mi reporte en PDF</button>
+      </div>
+
+      <div class="portal-card">
+        <div class="badge ${estado.cls}" style="font-size:16px;padding:10px 20px;margin-bottom:16px;">${estado.txt}</div>
+        <div style="display:grid;gap:8px;">
+          <div><strong>Cliente:</strong> ${cs[0].cliente}</div>
+          <div><strong>Placa:</strong> ${v.placa}</div>
+          <div><strong>Origen:</strong> ${v.origen||'—'}</div>
+          <div><strong>Destino:</strong> ${v.destino||'—'}</div>
+          <div><strong>Conductor:</strong> ${v.conductor||'—'}</div>
+          <div><strong>Fecha:</strong> ${v.fecha||'—'}</div>
+          <div><strong>Total mercancía:</strong> ${cs.length} entrega${cs.length>1?'s':''} · ${totalCajas||'—'} cajas · ${totalKilos||'—'} kg</div>
+        </div>
+      </div>
+
+      ${cs.map(c=>`
+        <div class="portal-card">
+          <div class="badge ${c.entregado?'bg-ok':'bg-y'}" style="font-size:12px;margin-bottom:12px;">${c.entregado?'✅ ENTREGADO':'⏳ PENDIENTE'}</div>
+          <div style="display:grid;gap:8px;">
+            <div><strong>Factura:</strong> ${c.factura||'—'}</div>
+            <div><strong>Lugar de entrega:</strong> ${c.destino||'—'}</div>
+            <div><strong>Cantidad:</strong> ${c.cajas||'—'} cajas · ${c.kilos||'—'} kg</div>
+            ${c.valor_envio?`<div><strong>Valor del envío:</strong> $${Number(c.valor_envio).toLocaleString('es-CO')}</div>`:''}
+            ${c.obs?`<div><strong>Observaciones:</strong> ${c.obs}</div>`:''}
+          </div>
+          ${getFotosFac(c).map(f=>`<img src="${f}" class="portal-img" onclick="openLightbox(this.src)">`).join('')}
+        </div>`).join('')}
+
+      <div class="portal-card">
+        <h3 style="font-family:'Bebas Neue';letter-spacing:1.5px;color:var(--y);margin-bottom:6px;">📍 Historial del viaje</h3>
+        <div class="timeline" style="margin-top:10px;">
+          ${tlHTML||'<p style="color:var(--sub);font-size:14px;">Aún no hay eventos registrados.</p>'}
+        </div>
+      </div>
+
+      <p style="text-align:center;font-size:12px;color:var(--sub);margin:16px 0;">Transporte & Logística PYM SAS · Esta página se actualiza automáticamente</p>
+    </div>`;
+}
+
+// ══════════════════════════════════════
+// PDF DEL CLIENTE — descargable desde el portal público, incluye el
+// detalle de sus entregas y las fotos de factura/entrega que se adjuntaron.
+// ══════════════════════════════════════
+// jsPDF necesita los datos de la imagen en base64, no una URL remota. Las
+// fotos nuevas viven en Cloudinary (URL https), las antiguas siguen en
+// base64 (formato anterior); esta función normaliza ambos casos.
+function _imgToPdfData(src){
+  return new Promise(resolve=>{
+    if(src.startsWith('data:')){
+      const img=new Image();
+      img.onload=()=>resolve({dataUrl:src, w:img.naturalWidth||img.width||100, h:img.naturalHeight||img.height||100});
+      img.onerror=()=>resolve(null);
+      img.src=src;
+      return;
+    }
+    const img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=()=>{
+      try {
+        const canvas=document.createElement('canvas');
+        canvas.width=img.naturalWidth||img.width;
+        canvas.height=img.naturalHeight||img.height;
+        canvas.getContext('2d').drawImage(img,0,0);
+        resolve({dataUrl:canvas.toDataURL('image/jpeg',0.85), w:canvas.width, h:canvas.height});
+      } catch(e){ console.error('No se pudo convertir imagen para el PDF:', e); resolve(null); }
+    };
+    img.onerror=()=>resolve(null);
+    img.src=src;
+  });
+}
+
+// Dibuja un título de sección con una barrita amarilla de acento a la
+// izquierda, para que se vea consistente con la identidad visual de PYM.
+function seccionTitulo(doc, texto, x, y, colorAccent, colorTexto){
+  doc.setFillColor(...colorAccent);
+  doc.rect(x, y-3.8, 1.4, 5, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(11.5); doc.setTextColor(...colorTexto);
+  doc.text(texto, x+4, y);
+}
+
+async function generarPDFClientePortal() {
+  const v=window.__portalViaje, cs=window.__portalClientes;
+  if(!v || !cs || !cs.length){ toast('⚠️ No hay datos para generar el PDF', true); return; }
+  const btn=document.getElementById('btn-pdf-cliente');
+  const btnTxt=btn?btn.textContent:'';
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Generando PDF...'; }
+  try {
+    const { jsPDF }=window.jspdf;
+    const doc=new jsPDF({ unit:'mm', format:'a4' });
+    const pageW=doc.internal.pageSize.getWidth();
+    const pageH=doc.internal.pageSize.getHeight();
+    const margin=14;
+    const COL_DARK=[17,18,20], COL_YELLOW=[245,193,0], COL_SUB=[110,114,122], COL_LINE=[228,230,234];
+    const COL_GREEN=[29,158,74], COL_ORANGE=[224,123,0], COL_BLUE=[47,111,224];
+    let y=0;
+
+    // ── Encabezado estilo marca (fondo oscuro + acento amarillo) ──
+    doc.setFillColor(...COL_DARK); doc.rect(0,0,pageW,26,'F');
+    doc.setFillColor(...COL_YELLOW); doc.rect(0,26,pageW,1.2,'F');
+    doc.setFillColor(...COL_YELLOW); doc.roundedRect(margin,6.5,13,13,2,2,'F');
+    doc.setTextColor(20,20,20); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.text('PYM', margin+6.5, 14.5, { align:'center' });
+    doc.setTextColor(...COL_YELLOW); doc.setFont('helvetica','bold'); doc.setFontSize(15);
+    doc.text('Transporte & Logística PYM', margin+17, 13);
+    doc.setTextColor(200,202,206); doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+    doc.text('Reporte de Seguimiento de Envío', margin+17, 19);
+    doc.setFontSize(7.5); doc.setTextColor(160,163,168);
+    doc.text(`Generado: ${new Date().toLocaleString('es-CO')}`, pageW-margin, 19, { align:'right' });
+    y=36;
+
+    // ── Nombre del cliente + estado como badge de color ──
+    const entregadas=cs.filter(c=>c.entregado).length;
+    const estado = entregadas===cs.length ? { txt:'ENTREGADO', c:COL_GREEN } : entregadas>0 ? { txt:'PARCIALMENTE ENTREGADO', c:COL_ORANGE } : { txt:'EN RUTA', c:COL_BLUE };
+    doc.setTextColor(20,20,20); doc.setFont('helvetica','bold'); doc.setFontSize(13);
+    doc.text(`${cs[0].cliente||'—'}`, margin, y);
+    const badgeW=doc.getTextWidth(estado.txt)+10;
+    doc.setFillColor(...estado.c); doc.roundedRect(pageW-margin-badgeW, y-5.5, badgeW, 7.5, 3.5, 3.5, 'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+    doc.text(estado.txt, pageW-margin-badgeW/2, y, { align:'center' });
+    y+=8;
+
+    // ── Tarjeta de datos del viaje (fondo gris claro redondeado) ──
+    const totalCajas=cs.reduce((s,c)=>s+(parseFloat(c.cajas)||0),0);
+    const totalKilos=cs.reduce((s,c)=>s+(parseFloat(c.kilos)||0),0);
+    const datos=[
+      ['🚚 Placa', v.placa||'—', '📅 Fecha', v.fecha||'—'],
+      ['📍 Origen', v.origen||'—', '🏁 Destino', v.destino||'—'],
+      ['👤 Conductor', v.conductor||'—', '📦 Entregas', String(cs.length)],
+      ['📦 Total mercancía', `${totalCajas||'—'} cajas · ${totalKilos||'—'} kg`, '', ''],
+    ];
+    const cardH=datos.length*7+6;
+    doc.setFillColor(248,249,251); doc.setDrawColor(...COL_LINE);
+    doc.roundedRect(margin, y, pageW-margin*2, cardH, 2.5, 2.5, 'FD');
+    let dy=y+7;
+    datos.forEach(row=>{
+      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...COL_SUB);
+      doc.text(row[0], margin+5, dy);
+      doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(30,30,30);
+      doc.text(String(row[1]), margin+5, dy+4);
+      if(row[2]){
+        doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...COL_SUB);
+        doc.text(row[2], margin+pageW/2-margin, dy);
+        doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(30,30,30);
+        doc.text(String(row[3]), margin+pageW/2-margin, dy+4);
+      }
+      dy+=7;
+    });
+    y+=cardH+9;
+
+    // ── Detalle de entregas ──
+    seccionTitulo(doc, 'Detalle de Entregas', margin, y, COL_YELLOW, COL_DARK);
+    y+=7;
+    const body=cs.map(c=>[
+      c.factura||'—', c.destino||'—', c.cajas||'—', c.kilos||'—',
+      c.valor_envio ? '$'+Number(c.valor_envio).toLocaleString('es-CO') : '—',
+      c.obs||'—', c.entregado?'Entregado':'Pendiente'
+    ]);
+    doc.autoTable({
+      startY:y, margin:{left:margin,right:margin},
+      head:[['Factura','Lugar Entrega','Cajas','Kilos','Val. Envío','Retorno/Obs','Estado']],
+      body, styles:{fontSize:8.5,cellPadding:2.5,textColor:[40,40,40]},
+      headStyles:{fillColor:COL_DARK,textColor:COL_YELLOW,fontStyle:'bold'},
+      alternateRowStyles:{fillColor:[248,249,251]},
+      columnStyles:{6:{fontStyle:'bold'}},
+      didParseCell(data){
+        if(data.section==='body' && data.column.index===6){
+          data.cell.styles.textColor = data.cell.raw==='Entregado' ? COL_GREEN : COL_ORANGE;
+        }
+      }
+    });
+    y=doc.lastAutoTable.finalY+9;
+
+    // Fotos de factura / entrega (todas las que se hayan adjuntado por entrega)
+    const fotosPorEntrega=cs.map(c=>({ c, fotos:getFotosFac(c) })).filter(x=>x.fotos.length);
+    if(fotosPorEntrega.length){
+      if(y>235){ doc.addPage(); y=16; }
+      seccionTitulo(doc, 'Fotos de Factura / Entrega', margin, y, COL_YELLOW, COL_DARK);
+      y+=8;
+      for(const { c, fotos } of fotosPorEntrega){
+        for(let fi=0; fi<fotos.length; fi++){
+          const foto=fotos[fi];
+          const img=await _imgToPdfData(foto);
+          if(!img) continue; // si una foto no carga (ej. sin conexión), se omite sin frenar el PDF
+          const maxW=pageW-margin*2, maxH=88;
+          const scale=Math.min(maxW/img.w, maxH/img.h, 1);
+          const w=img.w*scale, h=img.h*scale;
+          if(y+h+14>pageH-16){ doc.addPage(); y=16; }
+          const etiquetaFoto=fotos.length>1?` · foto ${fi+1}/${fotos.length}`:'';
+          doc.setFillColor(...COL_YELLOW); doc.roundedRect(margin, y, doc.getTextWidth(`Factura ${c.factura||'—'}${c.destino?' · '+c.destino:''}${etiquetaFoto}`)+8, 6, 2, 2, 'F');
+          doc.setFontSize(8.5); doc.setFont('helvetica','bold'); doc.setTextColor(20,20,20);
+          doc.text(`Factura ${c.factura||'—'}${c.destino?' · '+c.destino:''}${etiquetaFoto}`, margin+4, y+4.2);
+          y+=9;
+          doc.setDrawColor(...COL_LINE);
+          doc.roundedRect(margin-1, y-1, w+2, h+2, 1.5, 1.5, 'S');
+          doc.addImage(img.dataUrl, 'JPEG', margin, y, w, h);
+          y+=h+9;
+        }
+      }
+    }
+
+    // Historial del viaje (mismos eventos que ve el cliente en el portal:
+    // todos los generales, y de descargue solo los de este cliente)
+    const nombresCliente=new Set(cs.map(c=>c.cliente));
+    const tlFiltrado=(v.timeline||[]).filter(ev=>ev.tipo!=='descargue'||nombresCliente.has(ev.cliente));
+    if(y>245){ doc.addPage(); y=16; }
+    seccionTitulo(doc, 'Historial del Viaje', margin, y, COL_YELLOW, COL_DARK);
+    y+=7;
+    const iconosTl={salida:'🟢',temperatura:'🌡️',descargue:'📦',novedad:'⚠️',ubicacion:'📍',llegada:'🏁',nota:'📝'};
+    const tlBody=tlFiltrado.map(ev=>[ev.fecha||'—', ev.hora||'—', `${iconosTl[ev.tipo]||''} ${(ev.tipo||'—').toUpperCase()}`, ev.texto||'—']);
+    doc.autoTable({
+      startY:y, margin:{left:margin,right:margin},
+      head:[['Fecha','Hora','Tipo','Descripción']],
+      body:tlBody.length?tlBody:[['—','—','—','Aún no hay eventos registrados']],
+      styles:{fontSize:8.5,cellPadding:2.5,textColor:[40,40,40]},
+      headStyles:{fillColor:COL_DARK,textColor:COL_YELLOW,fontStyle:'bold'},
+      alternateRowStyles:{fillColor:[248,249,251]}
+    });
+    y=doc.lastAutoTable.finalY+8;
+
+    // ── Pie de página ──
+    const pageCount=doc.internal.getNumberOfPages();
+    for(let i=1;i<=pageCount;i++){
+      doc.setPage(i);
+      doc.setDrawColor(...COL_YELLOW); doc.setLineWidth(.6);
+      doc.line(margin, pageH-13, pageW-margin, pageH-13);
+      doc.setFontSize(7.5); doc.setTextColor(...COL_SUB); doc.setFont('helvetica','normal');
+      doc.text('Transporte & Logística PYM SAS', margin, pageH-8);
+      doc.text(`Página ${i} de ${pageCount}`, pageW-margin, pageH-8, { align:'right' });
+    }
+
+    const nombreArchivo=(cs[0].cliente||'cliente').toString().replace(/[^a-zA-Z0-9]+/g,'-');
+    doc.save(`Seguimiento-${nombreArchivo}-${v.placa||''}.pdf`);
+    toast('📄 PDF generado');
+  } catch(e) {
+    console.error(e);
+    toast('⚠️ No se pudo generar el PDF', true);
+  } finally {
+    if(btn){ btn.disabled=false; btn.textContent=btnTxt; }
+  }
+}
+
+// ══════════════════════════════════════
+// HISTORIAL
+// ══════════════════════════════════════
+function renderHist() {
+  const list=document.getElementById('hist-list');
+  const empty=document.getElementById('hist-empty');
+  if(!histFiltroAplicado){
+    document.getElementById('hcnt').textContent='';
+    list.innerHTML='';
+    empty.style.display='block';
+    empty.innerHTML='<div class="ei">🔍</div><p>Usa los filtros de arriba (fecha, placa, conductor, cliente, destino o estado) y presiona <strong style="color:var(--y);">FILTRAR</strong> para buscar viajes.</p>';
+    return;
+  }
+  document.getElementById('hcnt').textContent=`${filtered.length} viaje(s) encontrado(s)`;
+  if(!filtered.length){
+    list.innerHTML='';
+    empty.style.display='block';
+    empty.innerHTML='<div class="ei">📂</div><p>Sin viajes para los filtros aplicados.</p>';
+    return;
+  }
+  empty.style.display='none';
+  list.innerHTML=filtered.map(v=>histCard(v)).join('');
+}
+
+function histCard(v) {
+  const destinos=[...new Set((v.clientes||[]).map(c=>c.destino).filter(Boolean))];
+  const totalKg=(v.clientes||[]).reduce((s,c)=>s+(parseFloat(c.kilos)||0),0);
+  const nCli=(v.clientes||[]).length;
+  const entregados=(v.clientes||[]).filter(c=>c.entregado).length;
+  const estadoBadge=v.estadoViaje==='activo'?'<span class="badge bg-ok">🟢 EN RUTA</span>':v.estadoViaje==='finalizado'?'<span class="badge bg-dim">⬛ FINALIZADO</span>':'';
+  const tempBadge=v.estadoTemp==='ANOMALÍA'?'<span class="badge bg-an">⚠️ ANOMALÍA</span>':v.estadoTemp==='NORMAL'?'<span class="badge bg-ok">✅ NORMAL</span>':'<span class="badge bg-dim">SIN REV.</span>';
+
+  const cliRows=(v.clientes||[]).map(c=>`<tr${c.entregado?' class="entregado"':''}>
+    <td><span class="cli-name" style="font-weight:600;">${c.cliente||'—'}</span></td>
+    <td style="color:var(--sub)">${c.factura||'—'}</td>
+    <td style="text-align:center">${c.cajas||'—'}</td>
+    <td style="text-align:center;font-weight:600">${c.kilos||'—'}</td>
+    <td>${c.valor_kilo?'$'+Number(c.valor_kilo).toLocaleString('es-CO'):'—'}</td>
+    <td><span class="dbadge">${c.destino||'—'}</span></td>
+    <td>${c.valor_envio?'$'+Number(c.valor_envio).toLocaleString('es-CO'):'—'}</td>
+    <td style="color:var(--sub)">${c.fac_pm||'—'}</td>
+    <td style="color:var(--sub)">${c.obs||'—'}</td>
+    <td>${c.entregado?'<span class="badge bg-ok" style="font-size:10px;">ENTREGADO</span>':'<span class="badge bg-dim" style="font-size:10px;">PENDIENTE</span>'}</td>
+  </tr>`).join('');
+
+  const tlMini=(v.timeline||[]).slice(-5).map(ev=>`
+    <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;">
+      <span style="font-size:15px;flex-shrink:0;">${{salida:'🟢',temperatura:'🌡️',descargue:'📦',novedad:'⚠️',ubicacion:'📍',llegada:'🏁',nota:'📝'}[ev.tipo]||'📝'}</span>
+      <div>
+        <span style="font-size:14px;">${ev.texto}</span>
+        <span style="font-size:11px;color:var(--sub);margin-left:6px;">${ev.hora}</span>
+        ${ev.lat?`<a href="https://maps.google.com/?q=${ev.lat},${ev.lng}" target="_blank" style="font-size:11px;color:var(--b);margin-left:6px;">📍 Ver</a>`:''}
+        ${ev.responsable?`<span style="font-size:11px;color:var(--sub);margin-left:6px;">· 👤 ${ev.responsable}</span>`:''}
+      </div>
+    </div>`).join('');
+
+  return `<div class="vcard" id="hc-${v.id}">
+    <div class="vhead" onclick="togHist('${v.id}')">
+      <div class="vplaca">${v.placa}</div>
+      <div class="vinfo">
+        <div class="vruta">${v.origen||v.ruta||'—'} → ${v.destino||destinos.slice(0,3).join(' · ')||'—'}</div>
+        <div class="vmeta">${v.fecha} · ${v.manifiesto?'Manif. '+v.manifiesto+' · ':''}${v.conductor||'Sin conductor'} · ${entregados}/${nCli} entregas</div>
+      </div>
+      <div class="vbadges">${estadoBadge}${tempBadge}<span class="badge bg-y">${nCli} clientes</span><span class="badge bg-b">${totalKg.toFixed(1)} kg</span></div>
+      <div class="vtog" id="htog-${v.id}">▼</div>
+    </div>
+    <div class="vbody" id="hb-${v.id}">
+      <div class="vtw"><table class="vtable">
+        <thead><tr><th>Cliente</th><th>Factura</th><th>Cajas</th><th>Kilos</th><th>Val/Kg</th><th>Lugar Entrega</th><th>Val. Envío</th><th>Fac. P&M</th><th>Retorno/Obs</th><th>Estado</th></tr></thead>
+        <tbody>${cliRows||'<tr><td colspan="10" style="color:var(--sub);padding:16px;">Sin clientes</td></tr>'}</tbody>
+      </table></div>
+      ${(v.timeline||[]).length?`<div style="padding:14px 16px;border-top:1px solid var(--border);">
+        <div style="font-size:11px;color:var(--sub);letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:10px;">📍 ÚLTIMOS EVENTOS</div>
+        ${tlMini}
+        ${(v.timeline||[]).length>5?`<div style="font-size:12px;color:var(--sub);">... y ${(v.timeline||[]).length-5} eventos más</div>`:''}
+      </div>`:''}
+      ${v.nota?`<div style="padding:10px 16px;border-top:1px solid var(--border);background:rgba(245,193,0,.04);font-size:14px;color:var(--y);">📌 ${v.nota}</div>`:''}
+      <div class="vfoot">
+        <span class="vfst">Flete: <strong>$${(v.flete||0).toLocaleString('es-CO')}</strong></span>
+        <span class="vfst">Anticipo: <strong>$${(v.anticipo||0).toLocaleString('es-CO')}</strong></span>
+        <span class="vfst">Canastillas: <strong>${v.canastillas||0}</strong></span>
+        <span class="vfst">Kg total: <strong>${totalKg.toFixed(1)}</strong></span>
+        <div class="vfactions">
+          <button class="btn-s btn-sm" onclick="event.stopPropagation();editarViaje('${v.id}')">✏️ Editar</button>
+          <button class="btn-b btn-sm" onclick="event.stopPropagation();generarPDF('${v.id}')">📄 PDF</button>
+          <button class="btn-r btn-sm" onclick="event.stopPropagation();eliminar('${v.id}')">🗑 Eliminar</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function togHist(id) {
+  const b=document.getElementById('hb-'+id), t=document.getElementById('htog-'+id);
+  const open=b.classList.toggle('on');
+  t.classList.toggle('open',open);
+}
+function togSeg(id) {
+  const b=document.getElementById('sb-'+id), t=document.getElementById('stog-'+id);
+  if(!b||!t) return;
+  const open=b.classList.toggle('on');
+  t.classList.toggle('open',open);
+  if(open) segOpen.add(id); else segOpen.delete(id);
+}
+function eliminar(id) {
+  if(!confirm('¿Eliminar este viaje?')) return;
+  records=records.filter(r=>r.id!==id); filtered=filtered.filter(r=>r.id!==id);
+  saveDB(); renderHist(); refreshAll(); toast('🗑 Viaje eliminado');
+}
+
+// ══════════════════════════════════════
+// FILTROS
+// ══════════════════════════════════════
+function filtrar() {
+  histFiltroAplicado=true;
+  const desde=document.getElementById('fd').value, hasta=document.getElementById('fh').value;
+  const placa=document.getElementById('fp').value.toUpperCase().trim();
+  const cond=document.getElementById('fc').value.toLowerCase().trim();
+  const cli=document.getElementById('fcl').value.toLowerCase().trim();
+  const dest=document.getElementById('fde').value.toLowerCase().trim();
+  const est=document.getElementById('fes').value;
+  filtered=records.filter(r=>{
+    if(desde&&r.fecha<desde) return false;
+    if(hasta&&r.fecha>hasta) return false;
+    if(placa&&!r.placa.includes(placa)) return false;
+    if(cond&&!(r.conductor||'').toLowerCase().includes(cond)) return false;
+    if(cli&&!(r.clientes||[]).some(c=>(c.cliente||'').toLowerCase().includes(cli))) return false;
+    if(dest&&!(r.clientes||[]).some(c=>(c.destino||'').toLowerCase().includes(dest))) return false;
+    if(est&&r.estadoViaje!==est) return false;
+    return true;
+  });
+  renderHist();
+}
+function clearFilt() {
+  ['fd','fh','fp','fc','fcl','fde'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fes').value='';
+  histFiltroAplicado=false;
+  filtered=[]; renderHist();
+}
+
+// ══════════════════════════════════════
+// ANALYTICS
+// ══════════════════════════════════════
+function renderAnalytics() {
+  const byP={}, byD={}, dias7={}, byCl={}, anomP={}, tempP={};
+  records.forEach(r=>{byP[r.placa]=(byP[r.placa]||0)+1;});
+  records.forEach(r=>(r.clientes||[]).forEach(c=>{const d=c.destino||'N/D';byD[d]=(byD[d]||0)+(parseFloat(c.kilos)||0);}));
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=d.toISOString().slice(0,10);dias7[k]=0;}
+  records.forEach(r=>{if(dias7[r.fecha]!==undefined)dias7[r.fecha]++;});
+  const d7L={};Object.keys(dias7).forEach(k=>{d7L[k.slice(5)]=dias7[k];});
+  records.forEach(r=>(r.clientes||[]).forEach(c=>{if(c.cliente)byCl[c.cliente]=(byCl[c.cliente]||0)+1;}));
+  records.forEach(r=>{if(r.estadoTemp==='ANOMALÍA')anomP[r.placa]=(anomP[r.placa]||0)+1;});
+  records.forEach(r=>(r.revisiones||[]).forEach(rv=>{if(!tempP[r.placa])tempP[r.placa]=[];tempP[r.placa].push(rv.temp);}));
+  const avgT={};Object.keys(tempP).forEach(p=>{const a=tempP[p];avgT[p]=(a.reduce((x,y)=>x+y,0)/a.length).toFixed(1);});
+  const top6D=Object.fromEntries(Object.entries(byD).sort((a,b)=>b[1]-a[1]).slice(0,6));
+  const top5C=Object.fromEntries(Object.entries(byCl).sort((a,b)=>b[1]-a[1]).slice(0,5));
+  bc('ch-pl',byP,'var(--y)'); bc('ch-de',top6D,'var(--b)','kg',true); bc('ch-di',d7L,'var(--o)');
+  bc('ch-cl',top5C,'var(--g)'); bc('ch-an',anomP,'var(--r)'); bc('ch-te',avgT,'var(--b)','°C');
+}
+function bc(id,data,color,suf='',wide=false){
+  const el=document.getElementById(id);
+  const ents=Object.entries(data);
+  if(!ents.length){el.innerHTML='<p style="color:var(--sub);font-size:14px;text-align:center;padding:14px">Sin datos</p>';return;}
+  const mx=Math.max(...ents.map(e=>parseFloat(e[1])))||1;
+  const lblClass=wide?'blbl blbl-wide':'blbl';
+  el.innerHTML=ents.map(([k,v])=>`<div class="brow"><div class="${lblClass}" title="${k}">${wide?k:(k.length>11?k.slice(0,11)+'…':k)}</div><div class="btrack"><div class="bfill" style="width:${(parseFloat(v)/mx*100).toFixed(1)}%;background:${color}"></div></div><div class="bval">${v}${suf}</div></div>`).join('');
+}
+
+// ══════════════════════════════════════
+// EXPORT CSV
+// ══════════════════════════════════════
+function exportCSV() {
+  if(!filtered.length){toast('Sin registros para exportar',true);return;}
+  const rows=[['Fecha','Manifiesto','Placa','Origen','Destino','Conductor','Cliente','Factura','Cajas','Kilos','Lugar Entrega','Valor Envío','Fac P&M','Retorno/Obs','Entregado','Eventos Timeline','Estado Viaje','Estado Temp','Flete','Anticipo'].join(',')];
+  filtered.forEach(v=>{
+    const evts=(v.timeline||[]).map(e=>e.hora+':'+e.texto).join(' | ');
+    (v.clientes||[]).forEach((c,i)=>{
+      rows.push([v.fecha,v.manifiesto,v.placa,v.origen||v.ruta,v.destino,v.conductor,c.cliente,c.factura,c.cajas,c.kilos,c.destino,c.valor_envio,c.fac_pm,c.obs,c.entregado?'Sí':'No',i===0?evts:'',i===0?v.estadoViaje:'',i===0?v.estadoTemp:'',i===0?v.flete:'',i===0?v.anticipo:''].map(x=>`"${(x??'').toString().replace(/"/g,'""')}"`).join(','));
+    });
+  });
+  const blob=new Blob(['\uFEFF'+rows.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`PYM-Viajes-${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  toast('📥 CSV exportado');
+}
+
+// ══════════════════════════════════════
+// PDF POR VIAJE
+// ══════════════════════════════════════
+function generarPDF(id) {
+  const v = records.find(r => r.id === id);
+  if (!v) { toast('⚠️ Viaje no encontrado', true); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  const margin = 14;
+  let y = 16;
+
+  // ── Encabezado ──
+  doc.setFillColor(245, 193, 0);
+  doc.rect(0, 0, pageW, 22, 'F');
+  doc.setTextColor(20, 20, 20);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
+  doc.text('PYM · Transporte & Logística', margin, 13);
+  doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+  doc.text('Informe de Viaje — NIT 830.108.614-1', margin, 19);
+  doc.setFontSize(9);
+  doc.text(`Generado: ${new Date().toLocaleString('es-CO')}`, pageW - margin, 19, { align: 'right' });
+  y = 30;
+
+  // ── Datos del viaje ──
+  doc.setTextColor(0, 0, 0);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+  doc.text(`Viaje ${v.placa} — ${v.fecha}`, margin, y);
+  y += 7;
+
+  const datos = [
+    ['Placa', v.placa || '—', 'Manifiesto', v.manifiesto || '—'],
+    ['Origen', v.origen || v.ruta || '—', 'Destino', v.destino || '—'],
+    ['Vehículo', v.vehiculo || '—', 'Estado', v.estadoViaje === 'activo' ? 'EN RUTA' : 'FINALIZADO'],
+    ['Conductor', v.conductor || '—', 'Cédula', v.cedula || '—'],
+    ['Celular', v.celular || '—', 'Canastillas', String(v.canastillas || 0)],
+    ['Flete', '$' + (v.flete || 0).toLocaleString('es-CO'), 'Anticipo', '$' + (v.anticipo || 0).toLocaleString('es-CO')],
+    ['Estado Temp.', v.estadoTemp || '—', 'Kg totales', (v.totalKilos || 0).toFixed(1)],
+  ];
+  doc.autoTable({
+    startY: y, margin: { left: margin, right: margin }, theme: 'plain',
+    styles: { fontSize: 9, cellPadding: 1.5 },
+    columnStyles: { 0: { fontStyle: 'bold', textColor: [90,90,90] }, 2: { fontStyle: 'bold', textColor: [90,90,90] } },
+    body: datos
+  });
+  y = doc.lastAutoTable.finalY + 4;
+
+  if (v.nota) {
+    doc.setFillColor(250, 244, 220);
+    doc.setDrawColor(230, 200, 80);
+    const notaLines = doc.splitTextToSize('Nota: ' + v.nota, pageW - margin * 2 - 6);
+    const boxH = notaLines.length * 4.5 + 4;
+    doc.roundedRect(margin, y, pageW - margin * 2, boxH, 1, 1, 'FD');
+    doc.setFontSize(9); doc.setTextColor(120, 90, 0);
+    doc.text(notaLines, margin + 3, y + 5);
+    y += boxH + 6;
+  }
+
+  // ── Clientes / Entregas ──
+  doc.setTextColor(0, 0, 0);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+  doc.text('Clientes y Entregas', margin, y);
+  y += 3;
+  const cliBody = (v.clientes || []).map(c => [
+    c.cliente || '—', c.factura || '—', c.cajas || '—', c.kilos || '—',
+    c.destino || '—', c.valor_envio ? '$' + Number(c.valor_envio).toLocaleString('es-CO') : '—',
+    c.obs || '—', c.entregado ? 'Entregado' : 'Pendiente'
+  ]);
+  doc.autoTable({
+    startY: y, margin: { left: margin, right: margin },
+    head: [['Cliente', 'Factura', 'Cajas', 'Kilos', 'Lugar Entrega', 'Val. Envío', 'Retorno/Obs', 'Estado']],
+    body: cliBody.length ? cliBody : [['Sin clientes registrados', '', '', '', '', '', '', '']],
+    styles: { fontSize: 8.5, cellPadding: 2 },
+    headStyles: { fillColor: [30, 34, 45], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [247, 248, 251] }
+  });
+  y = doc.lastAutoTable.finalY + 8;
+
+  // ── Revisiones de temperatura ──
+  if (y > 250) { doc.addPage(); y = 16; }
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+  doc.text('Revisiones de Temperatura', margin, y);
+  y += 3;
+  const revBody = (v.revisiones || []).map(r => [r.hora || '—', (r.temp ?? '—') + '°C', r.estado || '—', r.obs || '—']);
+  doc.autoTable({
+    startY: y, margin: { left: margin, right: margin },
+    head: [['Hora', 'Temp.', 'Estado', 'Observación']],
+    body: revBody.length ? revBody : [['Sin revisiones registradas', '', '', '']],
+    styles: { fontSize: 8.5, cellPadding: 2 },
+    headStyles: { fillColor: [30, 34, 45], textColor: 255, fontStyle: 'bold' },
+    didParseCell: data => {
+      if (data.section === 'body' && data.column.index === 2 && data.cell.raw === 'ANOMALÍA') {
+        data.cell.styles.textColor = [217, 45, 61]; data.cell.styles.fontStyle = 'bold';
+      }
+    }
+  });
+  y = doc.lastAutoTable.finalY + 8;
+
+  // ── Línea de tiempo ──
+  if (y > 240) { doc.addPage(); y = 16; }
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+  doc.text('Línea de Tiempo del Viaje', margin, y);
+  y += 3;
+  const tlBody = (v.timeline || []).map(ev => [ev.fecha || '', ev.hora || '', (ev.tipo || '').toUpperCase(), ev.texto || '', ev.responsable || '—']);
+  doc.autoTable({
+    startY: y, margin: { left: margin, right: margin },
+    head: [['Fecha', 'Hora', 'Tipo', 'Descripción', 'Responsable']],
+    body: tlBody.length ? tlBody : [['—', '—', '—', 'Sin eventos registrados', '—']],
+    styles: { fontSize: 8.5, cellPadding: 2 },
+    headStyles: { fillColor: [30, 34, 45], textColor: 255, fontStyle: 'bold' }
+  });
+
+  // ── Pie de página en todas las páginas ──
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8); doc.setTextColor(150, 150, 150);
+    doc.text(`Transporte & Logística PYM SAS · Página ${i} de ${pageCount}`, pageW / 2, 290, { align: 'center' });
+  }
+
+  doc.save(`Informe-Viaje-${v.placa}-${v.fecha}.pdf`);
+  toast('📄 PDF del viaje generado');
+}
+
+// ══════════════════════════════════════
+// NEXT CHECK
+// ══════════════════════════════════════
+function setIntv(){intervalH=parseInt(document.getElementById('intsel').value);scheduleNxt();}
+function scheduleNxt(){
+  const el=document.getElementById('nxt');
+  if(!el) return; // la página es el portal del cliente (UI de admin reemplazada), no aplica
+  if(nxtTimer)clearTimeout(nxtTimer);
+  const n=new Date();n.setHours(n.getHours()+intervalH,0,0,0);
+  el.textContent=n.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+  nxtTimer=setTimeout(()=>{toast('⏰ Hora de revisar temperatura en todos los vehículos');scheduleNxt();},n-Date.now());
+}
+
+// ══════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════
+function toast(msg,err=false){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast'+(err?' err':'')+' on';
+  setTimeout(()=>t.className='toast',3500);
+}
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+document.getElementById('v-fecha').value=new Date().toISOString().slice(0,10);
+addCRow(); addCRow(); addCRow();
+addRev();
+(async()=>{
+  await initFirebase();
+  await loadDB();
+  checkPortal(); // si la URL es un enlace de seguimiento (/seguimiento/TOKEN, ?s=TOKEN o el antiguo ?track=...), reemplaza la UI de admin por el portal del cliente
+})();
+scheduleNxt();
+</script>
+</body>
+</html>
